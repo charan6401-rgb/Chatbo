@@ -1,45 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sri Charan's AI</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sri Charan AI</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Syne:wght@400;600&family=JetBrains+Mono&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="/static/style.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Syne:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
 </head>
 
 <body>
 
-<div class="app-shell">
+<div class="app">
 
-  <!-- HEADER -->
-  <header class="header">
-    <div class="logo">
-      Sri Charan's AI
-    </div>
-    <button id="clear-btn">Clear</button>
-  </header>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">⚡ Jarvis</div>
+    <button id="new-chat">+ New Chat</button>
+    <div id="history"></div>
+  </aside>
 
-  <!-- CHAT -->
-  <div class="chat-window">
-    <div id="messages-area" class="messages-area">
+  <!-- MAIN -->
+  <main class="main">
 
-      <div class="empty-state" id="empty-state">
-        <h2>Sri Charan's AI</h2>
-        <p>Ask anything — code, ideas, or tech 🚀</p>
+    <header class="topbar">Sri Charan's AI</header>
+
+    <div id="messages" class="messages">
+      <div class="empty">
+        <h2>Jarvis Online ⚡</h2>
+        <p>Say "Hey Jarvis" to activate</p>
       </div>
-
     </div>
 
     <!-- INPUT -->
-    <div class="input-bar">
-      <textarea id="user-input" placeholder="Type your message..."></textarea>
-      <button id="send-btn">➤</button>
+    <div class="input-box">
+      <textarea id="input" placeholder="Message Jarvis..."></textarea>
+      <button id="mic">🎤</button>
+      <button id="send">➤</button>
     </div>
 
-  </div>
-
+  </main>
 </div>
 
 <script src="/static/script.js"></script>
