@@ -1,41 +1,11 @@
-let chats = JSON.parse(localStorage.getItem("chats")) || [];
-let currentChat = [];
-
-/* DOM */
 const messages = document.getElementById("messages");
 const input = document.getElementById("input");
 const send = document.getElementById("send");
-const historyBox = document.getElementById("history");
-const newChatBtn = document.getElementById("new-chat");
 
-/* SAVE */
-function saveChats() {
-  localStorage.setItem("chats", JSON.stringify(chats));
-}
-
-/* LOAD SIDEBAR */
-function loadSidebar() {
-  historyBox.innerHTML = "";
-  chats.forEach((chat, i) => {
-    const div = document.createElement("div");
-    div.innerText = chat.title || "New Chat";
-    div.onclick = () => loadChat(i);
-    historyBox.appendChild(div);
-  });
-}
-
-/* LOAD CHAT */
-function loadChat(index) {
-  currentChat = chats[index].messages;
-  messages.innerHTML = "";
-
-  currentChat.forEach(msg => {
-    addMessage(msg.role, msg.content, false);
-  });
-}
+let history = [];
 
 /* ADD MESSAGE */
-function addMessage(role, text, save = true) {
+function addMessage(role, text) {
   document.querySelector(".empty")?.remove();
 
   const row = document.createElement("div");
@@ -43,57 +13,52 @@ function addMessage(role, text, save = true) {
 
   const bubble = document.createElement("div");
   bubble.className = "bubble";
-  bubble.innerText = text;
 
   row.appendChild(bubble);
   messages.appendChild(row);
 
-  messages.scrollTop = messages.scrollHeight;
-
-  if (save) {
-    currentChat.push({ role, content: text });
-  }
+  typeText(bubble, text);
 }
 
-/* SEND */
+/* SMOOTH STREAM */
+function typeText(el, text) {
+  let i = 0;
+  function type() {
+    if (i < text.length) {
+      el.innerText += text[i];
+      i++;
+      messages.scrollTop = messages.scrollHeight;
+      requestAnimationFrame(type);
+    }
+  }
+  type();
+}
+
+/* API */
 async function chat() {
   const text = input.value.trim();
   if (!text) return;
 
   input.value = "";
   addMessage("user", text);
+  history.push({ role: "user", content: text });
 
-  const res = await fetch("/api/chat", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ messages: currentChat })
-  });
-
-  const data = await res.json();
-
-  addMessage("ai", data.content);
-
-  // Save chat
-  if (chats.length === 0 || currentChat !== chats[chats.length - 1]?.messages) {
-    chats.push({
-      title: text.slice(0, 20),
-      messages: currentChat
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ messages: history })
     });
+
+    const data = await res.json();
+
+    addMessage("ai", data.content);
+    history.push({ role: "assistant", content: data.content });
+
+  } catch {
+    addMessage("ai", "⚠️ Error");
   }
-
-  saveChats();
-  loadSidebar();
 }
-
-/* NEW CHAT */
-newChatBtn.onclick = () => {
-  currentChat = [];
-  messages.innerHTML = `
-    <div class="empty">
-      <h2>Jarvis Online ⚡</h2>
-      <p>Start a new conversation</p>
-    </div>`;
-};
 
 /* EVENTS */
 send.onclick = chat;
@@ -105,5 +70,10 @@ input.addEventListener("keydown", e => {
   }
 });
 
-/* INIT */
-loadSidebar();
+/* SUGGESTIONS */
+document.querySelectorAll(".suggestions button").forEach(btn=>{
+  btn.onclick = ()=>{
+    input.value = btn.innerText;
+    chat();
+  }
+});
