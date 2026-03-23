@@ -3,53 +3,53 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sri Charan's AI</title>
+<title>Sri Charan AI</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Syne:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/style.css">
 </head>
 
 <body>
 
-<!-- SPLASH -->
-<div id="splash">
-  <div class="logo">Sri Charan's AI</div>
-</div>
+<div class="container">
 
-<div class="app">
+  <!-- TOP LINKS -->
+  <div class="top-links">
+    <a href="https://portfolio-xiok.onrender.com/" target="_blank">🌐 Portfolio</a>
+    <a href="https://github.com/charan6401-rgb" target="_blank">💻 GitHub</a>
+    <a href="https://www.linkedin.com/in/jangam-sri-charan-166a513b8" target="_blank">🔗 LinkedIn</a>
+  </div>
 
-  <!-- MAIN -->
-  <main class="main">
+  <!-- SUGGESTION CHIPS -->
+  <div class="chips">
+    <button>Skills</button>
+    <button>Projects</button>
+    <button>Education</button>
+    <button>Goals</button>
+  </div>
 
-    <!-- HEADER -->
-    <header class="topbar">Sri Charan's AI</header>
+  <!-- CHAT -->
+  <div id="chat">
 
-    <!-- CHAT -->
-    <div id="messages" class="messages">
-
-      <div class="empty">
-        <h2>Sri Charan's AI</h2>
-        <p>Your intelligent assistant — ask anything.</p>
-
-        <div class="suggestions">
-          <button>Who is Sri Charan?</button>
-          <button>Give me a daily routine</button>
-          <button>Suggest a movie</button>
-          <button>Help me learn coding</button>
-        </div>
-      </div>
-
+    <div class="welcome-card">
+      <div class="icon">💬</div>
+      <p>
+        Welcome! I'm Sri Charan's AI assistant.  
+        I can help you explore skills, projects, and ideas.  
+        Ask me anything.
+      </p>
     </div>
 
-    <!-- INPUT -->
-    <div class="input-box">
-      <textarea id="input" placeholder="Ask anything..."></textarea>
-      <button id="send">➤</button>
-    </div>
+  </div>
 
-  </main>
+  <!-- INPUT -->
+  <div class="input-area">
+    <input id="input" placeholder="Ask something..." />
+    <button id="send">➤</button>
+  </div>
+
 </div>
 
 <script src="/static/script.js"></script>
 </body>
-</html>
+  </html>
