@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sri Charan AI</title>
+<title>Sri Charan's AI</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Syne:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/style.css">
@@ -11,31 +11,39 @@
 
 <body>
 
-<div class="app">
+<!-- SPLASH -->
+<div id="splash">
+  <div class="logo">Sri Charan's AI</div>
+</div>
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="logo">⚡ Jarvis</div>
-    <button id="new-chat">+ New Chat</button>
-    <div id="history"></div>
-  </aside>
+<div class="app">
 
   <!-- MAIN -->
   <main class="main">
 
+    <!-- HEADER -->
     <header class="topbar">Sri Charan's AI</header>
 
+    <!-- CHAT -->
     <div id="messages" class="messages">
+
       <div class="empty">
-        <h2>Jarvis Online ⚡</h2>
-        <p>Say "Hey Jarvis" to activate</p>
+        <h2>Sri Charan's AI</h2>
+        <p>Your intelligent assistant — ask anything.</p>
+
+        <div class="suggestions">
+          <button>Who is Sri Charan?</button>
+          <button>Give me a daily routine</button>
+          <button>Suggest a movie</button>
+          <button>Help me learn coding</button>
+        </div>
       </div>
+
     </div>
 
     <!-- INPUT -->
     <div class="input-box">
-      <textarea id="input" placeholder="Message Jarvis..."></textarea>
-      <button id="mic">🎤</button>
+      <textarea id="input" placeholder="Ask anything..."></textarea>
       <button id="send">➤</button>
     </div>
 
