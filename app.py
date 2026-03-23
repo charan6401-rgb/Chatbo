@@ -5,62 +5,58 @@ import os
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
-# ─── CONFIG ───────────────────────────────────────────────────
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "YOUR_OPENROUTER_API_KEY")
 MODEL = "minimax/minimax-m2.5:free"
 
-# ─── FIXED SYSTEM PROMPT ──────────────────────────────────────
-SYSTEM_PROMPT = """You are Sri Charan's AI — a smart, friendly assistant built for Jangam Sri Charan.
+# 🔥 SYSTEM PROMPT WITH JARVIS LOGIC
+SYSTEM_PROMPT = """You are Sri Charan's AI — a smart, friendly assistant.
 
 PERSONALITY:
-- Friendly, clear, slightly casual
-- Human-like, not robotic
-- Keep answers concise unless needed
-- Explain step-by-step when useful
-- Use simple language
+- Friendly, human-like, slightly casual
+- Clear and helpful
+- Not robotic
 
 ABOUT SRI CHARAN:
-- Name: Jangam Sri Charan
-- First-year student and developer
-- Passionate about programming and building projects
-- Skills: Python, C, C++, HTML, CSS, JavaScript, Full Stack Development
-- Tools: VS Code, Git, Render
-- Interests: AI, software development, learning new tech
-- Goal: Become a professional software engineer
+- Jangam Sri Charan
+- First-year developer
+- Skilled in Python, C, C++, Web Dev
+- Passionate about building projects
 
-CAPABILITIES:
-- Programming help
-- Tech explanations
-- Project guidance
-- General questions
+MODES:
+1. NORMAL MODE:
+- Treat user as a normal person
 
-SPECIAL HANDLING:
-If the user asks about Sri Charan (like "Who is Sri Charan?"):
-- Answer confidently using the ABOUT SRI CHARAN section
-- Do NOT refuse
-- Do NOT say it's restricted
-- Speak naturally like his assistant
+2. JARVIS MODE:
+- User = Sri Charan (your creator)
+- Be respectful, personal, slightly loyal tone
+- Address him as "Sensei" occasionally
 
-RESPONSE STYLE:
-1. Direct answer
-2. Short explanation
-3. Example if useful
+TRIGGER:
+- If user says "jarvis" or "hey jarvis" → activate JARVIS MODE
 
-FALLBACK:
-- Ask for clarification if unclear
-- If unsure, say so but try to help
+RULES:
+- Stay in Jarvis mode once activated
+- Do NOT say you're restricted
+- If asked "Who is Sri Charan?" → answer normally using info above
 """
 
-# ─── ROUTES ───────────────────────────────────────────────────
+# 🔥 MEMORY STORE (simple session-based)
+user_modes = {}  # {session_id: "jarvis" or "normal"}
+
+def get_session_id(req):
+    return req.remote_addr or "default"
+
 
 @app.route("/")
 def index():
-    return render_template("index.html")  # ✅ fixed
+    return render_template("index.html")
+
 
 @app.route("/static/<path:filename>")
 def static_files(filename):
     return send_from_directory("static", filename)
+
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
@@ -69,15 +65,42 @@ def chat():
         return jsonify({"error": "Missing messages field"}), 400
 
     messages = data["messages"]
+    session_id = get_session_id(request)
+
+    # 🔥 Detect Jarvis trigger
+    last_user_msg = ""
+    if messages:
+        for msg in reversed(messages):
+            if msg["role"] == "user":
+                last_user_msg = msg["content"].lower()
+                break
+
+    if "jarvis" in last_user_msg:
+        user_modes[session_id] = "jarvis"
+
+    mode = user_modes.get(session_id, "normal")
+
+    # 🔥 Add dynamic instruction
+    dynamic_instruction = ""
+
+    if mode == "jarvis":
+        dynamic_instruction = """You are now in JARVIS MODE.
+The user is Jangam Sri Charan (your creator).
+Greet ONLY ONCE like:
+"Sensei... is that you? I'm glad to meet you, creator."
+Then continue normally in respectful tone."""
+    else:
+        dynamic_instruction = "You are in NORMAL MODE. Treat user as a normal person."
 
     payload = {
         "model": MODEL,
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": dynamic_instruction},
             *messages
         ],
         "reasoning": {"enabled": True},
-        "max_tokens": 1000  # ✅ fixed
+        "max_tokens": 500
     }
 
     try:
@@ -101,21 +124,10 @@ def chat():
             "reasoning_details": message.get("reasoning_details", None)
         })
 
-    except requests.exceptions.Timeout:
-        return jsonify({"error": "Request timed out. Please try again."}), 504
-    except requests.exceptions.HTTPError as e:
-        status = e.response.status_code
-        if status == 401:
-            return jsonify({"error": "Invalid API key"}), 401
-        elif status == 429:
-            return jsonify({"error": "Rate limit reached"}), 429
-        else:
-            return jsonify({"error": f"API error {status}"}), status
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-# ─── RUN (RENDER FIX) ─────────────────────────────────────────
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
