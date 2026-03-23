@@ -1,4 +1,4 @@
-const messages = document.getElementById("messages");
+const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 const send = document.getElementById("send");
 
@@ -6,7 +6,7 @@ let history = [];
 
 /* ADD MESSAGE */
 function addMessage(role, text) {
-  document.querySelector(".empty")?.remove();
+  document.querySelector(".welcome-card")?.remove();
 
   const row = document.createElement("div");
   row.className = "msg " + role;
@@ -15,27 +15,27 @@ function addMessage(role, text) {
   bubble.className = "bubble";
 
   row.appendChild(bubble);
-  messages.appendChild(row);
+  chat.appendChild(row);
 
-  typeText(bubble, text);
+  streamText(bubble, text);
 }
 
-/* SMOOTH STREAM */
-function typeText(el, text) {
+/* STREAMING EFFECT */
+function streamText(el, text) {
   let i = 0;
   function type() {
     if (i < text.length) {
       el.innerText += text[i];
       i++;
-      messages.scrollTop = messages.scrollHeight;
-      requestAnimationFrame(type);
+      chat.scrollTop = chat.scrollHeight;
+      setTimeout(type, 10); // speed
     }
   }
   type();
 }
 
-/* API */
-async function chat() {
+/* SEND */
+async function sendMsg() {
   const text = input.value.trim();
   if (!text) return;
 
@@ -52,28 +52,24 @@ async function chat() {
 
     const data = await res.json();
 
-    addMessage("ai", data.content);
+    addMessage("bot", data.content);
     history.push({ role: "assistant", content: data.content });
 
   } catch {
-    addMessage("ai", "⚠️ Error");
+    addMessage("bot", "Error...");
   }
 }
 
-/* EVENTS */
-send.onclick = chat;
+send.onclick = sendMsg;
 
 input.addEventListener("keydown", e => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    chat();
-  }
+  if (e.key === "Enter") sendMsg();
 });
 
-/* SUGGESTIONS */
-document.querySelectorAll(".suggestions button").forEach(btn=>{
+/* CHIP CLICK */
+document.querySelectorAll(".chips button").forEach(btn=>{
   btn.onclick = ()=>{
     input.value = btn.innerText;
-    chat();
+    sendMsg();
   }
 });
