@@ -1,75 +1,74 @@
-const chat = document.getElementById("chat");
-const input = document.getElementById("input");
-const send = document.getElementById("send");
+let messages = JSON.parse(localStorage.getItem("chat")) || [];
+let jarvis = false;
 
-let history = [];
+const chatDiv = document.getElementById("chat");
 
-/* ADD MESSAGE */
-function addMessage(role, text) {
-  document.querySelector(".welcome-card")?.remove();
+messages.forEach(m => render(m.role, m.content));
 
-  const row = document.createElement("div");
-  row.className = "msg " + role;
-
-  const bubble = document.createElement("div");
-  bubble.className = "bubble";
-
-  row.appendChild(bubble);
-  chat.appendChild(row);
-
-  streamText(bubble, text);
-}
-
-/* STREAMING EFFECT */
-function streamText(el, text) {
-  let i = 0;
-  function type() {
-    if (i < text.length) {
-      el.innerText += text[i];
-      i++;
-      chat.scrollTop = chat.scrollHeight;
-      setTimeout(type, 10); // speed
-    }
-  }
-  type();
-}
-
-/* SEND */
-async function sendMsg() {
+function send(){
+  const input = document.getElementById("input");
   const text = input.value.trim();
-  if (!text) return;
+  if(!text) return;
 
   input.value = "";
-  addMessage("user", text);
-  history.push({ role: "user", content: text });
 
-  try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ messages: history })
-    });
-
-    const data = await res.json();
-
-    addMessage("bot", data.content);
-    history.push({ role: "assistant", content: data.content });
-
-  } catch {
-    addMessage("bot", "Error...");
+  if(text.toLowerCase().includes("jarvis")){
+    jarvis = true;
   }
+
+  messages.push({role:"user", content:text});
+  render("user", text);
+
+  const botDiv = render("bot", "");
+
+  fetch("/chat", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({messages, jarvis})
+  }).then(res => {
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    let fullText = "";
+
+    function read(){
+      reader.read().then(({done, value}) => {
+        if(done) return;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split("\n");
+
+        lines.forEach(line => {
+          if(line.startsWith("data: ")){
+            const token = line.replace("data: ","");
+            fullText += token;
+            botDiv.innerText = fullText;
+          }
+
+          if(line.startsWith("event: end")){
+            messages.push({role:"assistant", content:fullText});
+            localStorage.setItem("chat", JSON.stringify(messages));
+          }
+        });
+
+        read();
+      });
+    }
+
+    read();
+  });
 }
 
-send.onclick = sendMsg;
+function render(role, text){
+  const div = document.createElement("div");
+  div.className = "msg " + (role === "user" ? "user" : "bot");
+  div.innerText = text;
+  chatDiv.appendChild(div);
+  chatDiv.scrollTop = chatDiv.scrollHeight;
+  return div;
+}
 
-input.addEventListener("keydown", e => {
-  if (e.key === "Enter") sendMsg();
-});
-
-/* CHIP CLICK */
-document.querySelectorAll(".chips button").forEach(btn=>{
-  btn.onclick = ()=>{
-    input.value = btn.innerText;
-    sendMsg();
-  }
-});
+function clearChat(){
+  localStorage.clear();
+  location.reload();
+}
