@@ -3,51 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sri Charan AI</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<title>Sri Charan's AI</title>
 <link rel="stylesheet" href="/static/style.css">
 </head>
 
 <body>
 
-<div class="container">
-
-  <!-- TOP LINKS -->
-  <div class="top-links">
-    <a href="https://portfolio-xiok.onrender.com/" target="_blank">🌐 Portfolio</a>
-    <a href="https://github.com/charan6401-rgb" target="_blank">💻 GitHub</a>
-    <a href="https://www.linkedin.com/in/jangam-sri-charan-166a513b8" target="_blank">🔗 LinkedIn</a>
+<div class="app">
+  <div class="header glass">
+    Sri Charan's AI
+    <button onclick="clearChat()">Clear</button>
   </div>
 
-  <!-- SUGGESTION CHIPS -->
-  <div class="chips">
-    <button>Skills</button>
-    <button>Projects</button>
-    <button>Education</button>
-    <button>Goals</button>
+  <div id="chat" class="chat"></div>
+
+  <div class="input-area glass">
+    <input id="input" placeholder="Ask anything...">
+    <button onclick="send()">Send</button>
   </div>
-
-  <!-- CHAT -->
-  <div id="chat">
-
-    <div class="welcome-card">
-      <div class="icon">💬</div>
-      <p>
-        Welcome! I'm Sri Charan's AI assistant.  
-        I can help you explore skills, projects, and ideas.  
-        Ask me anything.
-      </p>
-    </div>
-
-  </div>
-
-  <!-- INPUT -->
-  <div class="input-area">
-    <input id="input" placeholder="Ask something..." />
-    <button id="send">➤</button>
-  </div>
-
 </div>
 
 <script src="/static/script.js"></script>
