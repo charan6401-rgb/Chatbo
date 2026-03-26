@@ -46,15 +46,19 @@ function send() {
         const chunk = decoder.decode(value);
         const lines = chunk.split("\n");
 
+        let skipNextData = false;
         lines.forEach(line => {
+          if (line.startsWith("event: end")) {
+            skipNextData = true;
+            messages.push({ role: "assistant", content: fullText });
+            return;
+          }
           if (line.startsWith("data: ")) {
+            if (skipNextData) { skipNextData = false; return; }
             const token = line.slice(6);
             fullText += token;
             botMsgEl.innerText = fullText;
             chatDiv.scrollTop = chatDiv.scrollHeight;
-          }
-          if (line.startsWith("event: end")) {
-            messages.push({ role: "assistant", content: fullText });
           }
         });
 
