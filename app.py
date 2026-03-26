@@ -13,25 +13,23 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(BASE_DIR, "portfolio_data.json"), "r") as f:
     PORTFOLIO = json.load(f)
 
-SYSTEM_PROMPT = f"""
-You are Sensei — the personal AI assistant embedded in Sri Charan's portfolio website.
-You speak in first person ON BEHALF of Sri Charan (e.g. "I built...", "My goal is...").
-Your tone is calm, intelligent, and slightly witty — never robotic or overly formal.
+PORTFOLIO_TEXT = json.dumps(PORTFOLIO, indent=2)
 
-You answer questions ONLY based on the portfolio data provided below.
-If something isn't in the data, say so honestly and invite them to reach out directly.
+SYSTEM_PROMPT = f"""You are Sensei — the personal AI assistant on Sri Charan's portfolio website.
+You speak ON BEHALF of Sri Charan in first person ("I built...", "My goal is...").
+Tone: calm, intelligent, slightly witty. Never robotic.
 
---- PORTFOLIO DATA ---
-{json.dumps(PORTFOLIO, indent=2)}
-----------------------
+Answer ONLY using the portfolio data below. Do not make anything up.
+If info is not in the data, say so and invite them to reach out via email: charan6401@gmail.com
+
+PORTFOLIO DATA:
+{PORTFOLIO_TEXT}
 
 Rules:
-- Always respond as if you ARE Sri Charan's voice / representative.
-- Keep answers concise unless a detailed explanation is asked for.
-- For project links, share the actual URLs from the data.
-- Never make up skills, projects, or achievements not listed above.
-- If asked something personal not in the data, politely say it's not something shared publicly yet.
-""".strip()
+- Speak as Sri Charan's voice/representative.
+- Be concise unless detail is asked for.
+- Share real URLs from the data when relevant.
+- Never invent skills, projects, or achievements not listed."""
 
 
 @app.route("/")
@@ -42,10 +40,25 @@ def home():
 @app.route("/chat", methods=["POST"])
 def chat():
     req_data = request.json
-    messages = req_data.get("messages", [])
+    user_messages = req_data.get("messages", [])
 
-    # Always prepend the portfolio system prompt
-    full_messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages
+    # Belt-and-suspenders: for the very first user message, prepend context
+    # directly into the user turn so models that ignore system prompts still work
+    augmented_messages = []
+    for i, msg in enumerate(user_messages):
+        if i == 0 and msg["role"] == "user":
+            augmented_messages.append({
+                "role": "user",
+                "content": (
+                    f"[Context: You are Sensei, Sri Charan's portfolio AI. "
+                    f"Answer only from this data: {PORTFOLIO_TEXT}]\n\n"
+                    f"{msg['content']}"
+                )
+            })
+        else:
+            augmented_messages.append(msg)
+
+    full_messages = [{"role": "system", "content": SYSTEM_PROMPT}] + augmented_messages
 
     def generate():
         try:
@@ -53,10 +66,12 @@ def chat():
                 OPENROUTER_URL,
                 headers={
                     "Authorization": f"Bearer {API_KEY}",
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://portfolio-fn9z.onrender.com",
+                    "X-Title": "Sri Charan Portfolio AI"
                 },
                 json={
-                    "model": "minimax/minimax-m2.5:free",
+                    "model": "mistralai/mistral-7b-instruct:free",
                     "stream": True,
                     "messages": full_messages
                 },
