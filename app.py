@@ -8,13 +8,14 @@ app = Flask(__name__)
 API_KEY = os.environ.get("OPENROUTER_API_KEY", "your_api_key_here")
 URL = "https://openrouter.ai/api/v1/chat/completions"
 
-# Auto-fallback model list — tries each if rate limited
+# openrouter/free = official OpenRouter auto-router (March 2026, confirmed working)
+# It picks a live free model automatically — no more 404 or 429 from bad model IDs
 FREE_MODELS = [
-    "deepseek/deepseek-r1:free",
-    "google/gemma-3-27b-it:free",
-    "mistralai/mistral-7b-instruct:free",
-    "qwen/qwen3-8b:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
+    "openrouter/free",                           # primary: auto-picks best free model
+    "meta-llama/llama-3.3-70b-instruct:free",    # fallback 1
+    "google/gemma-3-27b-it:free",                # fallback 2
+    "mistralai/mistral-7b-instruct:free",        # fallback 3
+    "qwen/qwen3-8b:free",                        # fallback 4
 ]
 
 
@@ -36,9 +37,7 @@ Currently building his foundation brick by brick: data structures, OOP, web deve
 and channeling it all into real projects.
 
 QUOTE: "Every expert was once a beginner who simply refused to stop."
-
 CURRENTLY BUILDING: AI chatbot · Portfolio website · DSA practice
-
 GOAL: Become a skilled software developer and contribute to real-world products that matter.
 
 EDUCATION:
@@ -48,27 +47,25 @@ SKILLS:
 - Languages: C, Python, JavaScript
 - Web: HTML, CSS, React
 - Tools: Git, GitHub, VS Code, Render
-- Concepts: Data Structures, Object-Oriented Programming, Problem Solving
+- Concepts: Data Structures, OOP, Problem Solving
 
 PROJECTS:
-1. Sri Charan's AI Chatbot (LIVE) — A fully deployed AI-powered chatbot live on the internet.
-   Not a tutorial project — built, configured, and deployed to a real URL.
-   URL: https://sri-charans-ai.onrender.com
-   Tech: AI, Python, Render
+1. Sri Charan's AI Chatbot (LIVE)
+   A fully deployed AI-powered chatbot — live on the internet, not a tutorial project.
+   URL: https://sri-charans-ai.onrender.com | Tech: AI, Python, Render
 
-2. Portfolio Website (LIVE) — Designed and hand-coded from scratch. No templates, no drag-and-drop.
-   Fully responsive, dark red & gold palette, smooth scroll with particle effects.
-   URL: https://portfolio-fn9z.onrender.com
-   Tech: HTML, CSS, JavaScript
+2. Portfolio Website (LIVE)
+   Hand-coded from scratch. No templates. Fully responsive with dark red & gold palette.
+   URL: https://portfolio-fn9z.onrender.com | Tech: HTML, CSS, JavaScript
 
-3. Coming Next — DSA Visualizer and Python automation tool (in early stages).
+3. Coming Next — DSA Visualizer + Python automation tool (in progress)
    Tech: C++, Python
 
 ACHIEVEMENTS:
-- Built and deployed a live AI chatbot accessible at a real public URL
-- Designed & hand-coded a personal portfolio from scratch
-- Completed foundational C++ programming and core OOP concepts
-- Practising data structures and algorithms consistently
+- Deployed a live AI chatbot accessible at a real public URL
+- Hand-coded a personal portfolio from scratch
+- Completed foundational C & OOP concepts
+- Consistently practising data structures and algorithms
 
 CONTACT:
 - Email: charan6401@gmail.com
@@ -76,24 +73,24 @@ CONTACT:
 - Portfolio: https://portfolio-fn9z.onrender.com
 - AI Chatbot: https://sri-charans-ai.onrender.com
 
-PERSONALITY: calm, intelligent, slightly witty. Values: building real things, learning by doing, consistency over perfection.
-
 Keep answers concise and conversational. Use emojis sparingly. If you don't know something, say so honestly."""
 
 
-# ── Serve the frontend from templates/ ───────────────────────────────────────
 @app.route("/")
 def index():
     return render_template("index.html")
 
 
-# ── Chat endpoint ─────────────────────────────────────────────────────────────
+@app.route("/ping")
+def ping():
+    return {"status": "ok", "model": "openrouter/free", "version": "2.0"}
+
+
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
         data = request.json
         user_messages = data.get("messages", [])
-
         messages = [
             {"role": "system", "content": build_system_prompt()}
         ] + user_messages
@@ -101,10 +98,11 @@ def chat():
         def generate():
             headers = {
                 "Authorization": f"Bearer {API_KEY}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://sri-charans-ai.onrender.com",
+                "X-Title": "Sri Charan AI Chatbot"
             }
 
-            # Try each model until one works
             for model in FREE_MODELS:
                 try:
                     payload = {
@@ -112,22 +110,20 @@ def chat():
                         "messages": messages,
                         "stream": True
                     }
-                    with requests.post(URL, headers=headers, json=payload, stream=True) as r:
-                        # Rate limited — try next model
-                        if r.status_code == 429:
-                            continue
+                    with requests.post(URL, headers=headers, json=payload, stream=True, timeout=30) as r:
+                        if r.status_code in (429, 404, 503):
+                            continue  # rate limited or unavailable — try next
 
                         if r.status_code != 200:
-                            yield f"[ERROR] API failed ({model}): {r.text}"
-                            return
+                            continue  # any other error — try next
 
-                        # Stream the response
+                        # Stream chunks back to frontend
                         for line in r.iter_lines():
                             if line:
                                 decoded = line.decode("utf-8")
                                 if decoded.startswith("data: "):
                                     chunk = decoded[6:]
-                                    if chunk == "[DONE]":
+                                    if chunk.strip() == "[DONE]":
                                         return
                                     try:
                                         json_data = json.loads(chunk)
@@ -136,13 +132,13 @@ def chat():
                                             yield delta
                                     except Exception:
                                         continue
-                        return  # success — stop trying other models
+                        return  # streamed successfully — stop trying other models
 
-                except Exception as e:
-                    continue  # network error — try next model
+                except Exception:
+                    continue  # network/timeout error — try next model
 
             # All models failed
-            yield "⚠️ All models are currently rate-limited. Please try again in a moment."
+            yield "⚠️ All models are currently unavailable. Please try again in a moment."
 
         return Response(stream_with_context(generate()), content_type="text/plain")
 
@@ -152,3 +148,4 @@ def chat():
 
 if __name__ == "__main__":
     app.run(debug=True)
+    
