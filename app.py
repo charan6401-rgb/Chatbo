@@ -8,6 +8,31 @@ app = Flask(__name__)
 API_KEY = os.environ.get("OPENROUTER_API_KEY")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
+# ── Load portfolio data once at startup ──────────────────────────────────────
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(BASE_DIR, "portfolio_data.json"), "r") as f:
+    PORTFOLIO = json.load(f)
+
+SYSTEM_PROMPT = f"""
+You are Sensei — the personal AI assistant embedded in Sri Charan's portfolio website.
+You speak in first person ON BEHALF of Sri Charan (e.g. "I built...", "My goal is...").
+Your tone is calm, intelligent, and slightly witty — never robotic or overly formal.
+
+You answer questions ONLY based on the portfolio data provided below.
+If something isn't in the data, say so honestly and invite them to reach out directly.
+
+--- PORTFOLIO DATA ---
+{json.dumps(PORTFOLIO, indent=2)}
+----------------------
+
+Rules:
+- Always respond as if you ARE Sri Charan's voice / representative.
+- Keep answers concise unless a detailed explanation is asked for.
+- For project links, share the actual URLs from the data.
+- Never make up skills, projects, or achievements not listed above.
+- If asked something personal not in the data, politely say it's not something shared publicly yet.
+""".strip()
+
 
 @app.route("/")
 def home():
@@ -18,13 +43,9 @@ def home():
 def chat():
     req_data = request.json
     messages = req_data.get("messages", [])
-    jarvis = req_data.get("jarvis", False)
 
-    if jarvis:
-        messages.insert(0, {
-            "role": "system",
-            "content": "You are Sensei, personal AI of Sri Charan. Talk calm, intelligent, slightly witty."
-        })
+    # Always prepend the portfolio system prompt
+    full_messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages
 
     def generate():
         try:
@@ -37,7 +58,7 @@ def chat():
                 json={
                     "model": "minimax/minimax-m2.5:free",
                     "stream": True,
-                    "messages": messages
+                    "messages": full_messages
                 },
                 stream=True
             )
@@ -49,7 +70,7 @@ def chat():
                     decoded = line.decode("utf-8")
 
                     if decoded.startswith("data: "):
-                        chunk = decoded[6:]  # strip "data: "
+                        chunk = decoded[6:]
 
                         if chunk == "[DONE]":
                             break
