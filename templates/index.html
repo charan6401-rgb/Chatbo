@@ -1,178 +1,493 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sri Charan AI</title>
-
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sri Charan · AI Chat</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
 <style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-}
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-    height: 100vh;
-    background: linear-gradient(135deg, #0a1f6d, #00c6ff);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: white;
-}
+  :root {
+    --bg1: #040d1a;
+    --bg2: #071428;
+    --cyan: #00e5ff;
+    --teal: #00bcd4;
+    --red:  #ff3c6e;
+    --glass-bg: rgba(255,255,255,0.04);
+    --glass-border: rgba(0,229,255,0.18);
+    --glass-blur: blur(18px);
+    --text: #e8f4f8;
+    --muted: rgba(232,244,248,0.45);
+    --font-head: 'Syne', sans-serif;
+    --font-body: 'Space Grotesk', sans-serif;
+    --radius: 20px;
+    --radius-sm: 12px;
+    --bubble-user: rgba(0,229,255,0.12);
+    --bubble-bot: rgba(255,255,255,0.05);
+  }
 
-/* HERO */
-.hero {
-    text-align: center;
-    margin-bottom: 30px;
-}
+  html, body {
+    height: 100%;
+    font-family: var(--font-body);
+    background: var(--bg1);
+    color: var(--text);
+    overflow: hidden;
+  }
 
-.hero h1 {
-    font-size: 32px;
-    font-weight: 600;
-}
+  /* ── Animated mesh background ── */
+  .bg-canvas {
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 15% 20%, rgba(0,188,212,0.18) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 60% at 85% 75%, rgba(255,60,110,0.14) 0%, transparent 65%),
+      radial-gradient(ellipse 40% 40% at 50% 50%, rgba(0,229,255,0.07) 0%, transparent 70%),
+      linear-gradient(160deg, #040d1a 0%, #071428 100%);
+  }
+  .bg-canvas::after {
+    content:'';
+    position:absolute; inset:0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,229,255,0.04) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,229,255,0.04) 40px);
+  }
 
-.hero p {
-    opacity: 0.8;
-    margin-top: 8px;
-}
+  /* ── Layout ── */
+  .app {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column;
+    height: 100dvh;
+    max-width: 430px;
+    margin: 0 auto;
+  }
 
-/* CHAT CONTAINER */
-.chat-box {
-    width: 600px;
-    max-width: 90%;
-}
+  /* ── Header ── */
+  .header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 18px 20px 14px;
+    background: rgba(4,13,26,0.55);
+    backdrop-filter: blur(24px) saturate(160%);
+    border-bottom: 1px solid var(--glass-border);
+    flex-shrink: 0;
+  }
+  .avatar {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--cyan), var(--red));
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-head); font-weight: 800; font-size: 16px;
+    color: #fff; flex-shrink: 0;
+    box-shadow: 0 0 16px rgba(0,229,255,0.35);
+  }
+  .header-info { flex: 1; }
+  .header-name {
+    font-family: var(--font-head); font-weight: 700; font-size: 17px;
+    letter-spacing: 0.02em; color: var(--text);
+  }
+  .header-sub {
+    font-size: 11px; color: var(--cyan); letter-spacing: 0.08em;
+    text-transform: uppercase; margin-top: 2px;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #00e676;
+    box-shadow: 0 0 8px #00e676;
+    flex-shrink: 0;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.5; transform:scale(0.8); }
+  }
 
-/* GLASS INPUT */
-.glass-input {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 15px;
-    border-radius: 20px;
-    backdrop-filter: blur(25px);
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
-}
-
-.glass-input input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: white;
-    font-size: 16px;
-}
-
-.glass-input input::placeholder {
-    color: rgba(255,255,255,0.6);
-}
-
-.send-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #4cff7f;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-/* CHAT AREA */
-.messages {
-    position: fixed;
-    bottom: 120px;
-    width: 600px;
-    max-width: 90%;
-    max-height: 50vh;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.msg {
+  /* ── Suggested prompts ── */
+  .prompts-strip {
+    display: flex; gap: 8px;
     padding: 12px 16px;
-    border-radius: 14px;
-    max-width: 70%;
-}
+    overflow-x: auto; flex-shrink: 0;
+    scrollbar-width: none;
+  }
+  .prompts-strip::-webkit-scrollbar { display: none; }
+  .prompt-chip {
+    white-space: nowrap;
+    padding: 7px 14px;
+    border-radius: 50px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: var(--glass-blur);
+    font-size: 12px; color: var(--cyan);
+    cursor: pointer; transition: all 0.22s;
+    flex-shrink: 0;
+    font-family: var(--font-body); font-weight: 500;
+  }
+  .prompt-chip:hover, .prompt-chip:active {
+    background: rgba(0,229,255,0.12);
+    border-color: var(--cyan);
+    box-shadow: 0 0 14px rgba(0,229,255,0.2);
+    transform: translateY(-1px);
+  }
 
-.user {
-    align-self: flex-end;
-    background: #00c6ff;
-}
+  /* ── Messages ── */
+  .messages {
+    flex: 1; overflow-y: auto;
+    padding: 8px 16px 12px;
+    display: flex; flex-direction: column; gap: 14px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,229,255,0.15) transparent;
+  }
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-thumb { background: rgba(0,229,255,0.15); border-radius: 4px; }
 
-.bot {
-    align-self: flex-start;
-    background: rgba(255,255,255,0.15);
-    backdrop-filter: blur(10px);
-}
+  .msg { display: flex; flex-direction: column; max-width: 85%; }
+  .msg.user { align-self: flex-end; align-items: flex-end; }
+  .msg.bot  { align-self: flex-start; align-items: flex-start; }
+
+  .bubble {
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    line-height: 1.6; font-size: 14px;
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid transparent;
+    animation: popIn 0.28s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes popIn {
+    from { opacity:0; transform:scale(0.88) translateY(6px); }
+    to   { opacity:1; transform:scale(1) translateY(0); }
+  }
+  .msg.user .bubble {
+    background: var(--bubble-user);
+    border-color: rgba(0,229,255,0.22);
+    border-bottom-right-radius: 6px;
+    color: var(--text);
+  }
+  .msg.bot .bubble {
+    background: var(--bubble-bot);
+    border-color: rgba(255,255,255,0.08);
+    border-bottom-left-radius: 6px;
+    color: var(--text);
+  }
+  .msg-time {
+    font-size: 10px; color: var(--muted);
+    margin-top: 4px; padding: 0 4px;
+  }
+
+  /* typing indicator */
+  .typing-bubble {
+    background: var(--bubble-bot);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-bottom-left-radius: 6px;
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    display: none; align-items: center; gap: 5px;
+    backdrop-filter: var(--glass-blur);
+  }
+  .typing-bubble.visible { display: flex; }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--cyan); opacity:0.5; }
+  .dot:nth-child(1) { animation: blink 1.2s 0s infinite; }
+  .dot:nth-child(2) { animation: blink 1.2s 0.2s infinite; }
+  .dot:nth-child(3) { animation: blink 1.2s 0.4s infinite; }
+  @keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+
+  /* ── Input area ── */
+  .input-area {
+    flex-shrink: 0;
+    padding: 12px 16px 20px;
+    background: rgba(4,13,26,0.6);
+    backdrop-filter: blur(24px) saturate(160%);
+    border-top: 1px solid var(--glass-border);
+  }
+  .input-wrap {
+    display: flex; align-items: flex-end; gap: 10px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 10px 10px 10px 16px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    backdrop-filter: blur(12px);
+  }
+  .input-wrap:focus-within {
+    border-color: rgba(0,229,255,0.45);
+    box-shadow: 0 0 20px rgba(0,229,255,0.12);
+  }
+  #msgInput {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--text); font-family: var(--font-body); font-size: 14px;
+    resize: none; line-height: 1.5;
+    max-height: 100px; min-height: 22px;
+    overflow-y: auto;
+  }
+  #msgInput::placeholder { color: var(--muted); }
+  .send-btn {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--cyan), var(--teal));
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.18s, box-shadow 0.18s;
+    box-shadow: 0 0 16px rgba(0,229,255,0.25);
+  }
+  .send-btn:hover { transform: scale(1.08); box-shadow: 0 0 22px rgba(0,229,255,0.4); }
+  .send-btn:active { transform: scale(0.95); }
+  .send-btn svg { width:16px; height:16px; fill:#040d1a; }
+
+  /* glass card for welcome */
+  .welcome-card {
+    margin: 16px 0 4px;
+    padding: 18px 20px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    backdrop-filter: var(--glass-blur);
+    font-size: 13.5px; line-height: 1.7; color: var(--muted);
+  }
+  .welcome-card strong { color: var(--cyan); font-weight: 600; }
+  .welcome-card .tag {
+    display: inline-block; padding: 2px 10px;
+    background: rgba(0,229,255,0.1); border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 50px; font-size: 11px; color: var(--cyan);
+    margin: 2px 3px 0 0; letter-spacing: 0.05em;
+  }
 </style>
 </head>
-
 <body>
 
-<div class="hero">
-    <h1>Hi, I’m Sri Charan AI</h1>
-    <p>How can I help you today?</p>
-</div>
+<div class="bg-canvas"></div>
 
-<div class="messages" id="messages"></div>
+<div class="app">
 
-<div class="chat-box">
-    <div class="glass-input">
-        <input id="input" placeholder="Ask anything...">
-        <button class="send-btn" onclick="send()">↑</button>
+  <!-- Header -->
+  <header class="header">
+    <div class="avatar">SC</div>
+    <div class="header-info">
+      <div class="header-name">Sri Charan</div>
+      <div class="header-sub">AI · Portfolio Assistant</div>
     </div>
+    <div class="status-dot"></div>
+  </header>
+
+  <!-- Quick prompt chips -->
+  <div class="prompts-strip" id="promptsStrip">
+    <button class="prompt-chip" onclick="sendPrompt('Who is Sri Charan?')">👤 Who is Sri Charan?</button>
+    <button class="prompt-chip" onclick="sendPrompt('Tell me about his projects')">🚀 Projects</button>
+    <button class="prompt-chip" onclick="sendPrompt('What are his skills?')">⚡ Skills</button>
+    <button class="prompt-chip" onclick="sendPrompt('What is his educational background?')">🎓 Education</button>
+    <button class="prompt-chip" onclick="sendPrompt('How can I contact Sri Charan?')">📬 Contact</button>
+    <button class="prompt-chip" onclick="sendPrompt('What are his achievements?')">🏆 Achievements</button>
+  </div>
+
+  <!-- Messages -->
+  <div class="messages" id="messages">
+    <div class="welcome-card">
+      Hey there 👋 I'm <strong>Sri Charan's AI assistant</strong>.<br/>
+      Ask me anything — his work, projects, skills, or background.<br/>
+      <br/>
+      <span class="tag">Full-Stack</span>
+      <span class="tag">AI/ML</span>
+      <span class="tag">Cloud</span>
+      <span class="tag">Open Source</span>
+    </div>
+  </div>
+
+  <!-- Typing indicator lives outside messages, just before input -->
+  <div style="padding: 0 16px 8px; flex-shrink:0;">
+    <div class="typing-bubble" id="typingBubble">
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="input-area">
+    <div class="input-wrap">
+      <textarea id="msgInput" rows="1" placeholder="Ask about Sri Charan…"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="handleSend()">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
 </div>
 
 <script>
-async function send() {
-    const input = document.getElementById("input");
-    const messages = document.getElementById("messages");
+// ── Profile & system prompt ──────────────────────────────────────────────────
+const SYSTEM_PROMPT = `You are an intelligent, friendly AI assistant for Sri Charan's personal portfolio chatbot.
+Answer questions about Sri Charan naturally, warmly, and in a conversational tone.
 
-    const text = input.value.trim();
-    if (!text) return;
+Here is everything you know about Sri Charan:
 
-    input.value = "";
+NAME: Sri Charan
+ROLE: Full-Stack Developer & AI/ML Enthusiast
+LOCATION: Hyderabad, India
 
-    // user msg
-    messages.innerHTML += `<div class="msg user">${text}</div>`;
+ABOUT:
+Sri Charan is a passionate software developer with a strong foundation in full-stack web development and a growing expertise in Artificial Intelligence and Machine Learning. He loves building intelligent, user-centric applications that solve real-world problems. He is known for clean code, creative problem-solving, and a strong drive to continuously learn and grow.
 
-    // bot msg
-    const botDiv = document.createElement("div");
-    botDiv.className = "msg bot";
-    messages.appendChild(botDiv);
+SKILLS:
+- Frontend: React.js, Next.js, HTML5, CSS3, JavaScript (ES6+), Tailwind CSS
+- Backend: Python (Flask, FastAPI), Node.js, Express.js
+- AI/ML: Machine Learning, Deep Learning, NLP, LangChain, Hugging Face, OpenAI API
+- Databases: MongoDB, PostgreSQL, MySQL, Firebase
+- Cloud & DevOps: AWS, Docker, Git, GitHub Actions
+- Other: REST APIs, WebSockets, Prompt Engineering
 
-    const res = await fetch("/chat", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            messages: [{ role: "user", content: text }]
-        })
-    });
+PROJECTS:
+1. AI Portfolio Chatbot — A glassmorphism-styled mobile chatbot powered by a language model, allowing visitors to interactively learn about Sri Charan's work, skills, and background.
+2. Smart Resume Analyzer — An NLP-powered tool that parses resumes, extracts key information, matches skills against job descriptions, and provides a fit score.
+3. Real-Time Collaborative Code Editor — A browser-based IDE with live multi-user editing, syntax highlighting, and chat, built using WebSockets and React.
+4. E-Commerce Platform — A full-stack MERN application with product management, cart, payments (Razorpay), and admin dashboard.
+5. ML Crop Disease Detector — A deep learning model (CNN) that detects crop diseases from leaf images with ~94% accuracy, deployed as a Flask API with a React frontend.
+6. StudyBuddy — An AI study assistant that summarizes documents, generates flashcards, and creates quizzes using LangChain and OpenAI.
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
+EDUCATION:
+- B.Tech in Computer Science & Engineering — [University Name], Hyderabad (2022–2026)
+- Relevant Coursework: Data Structures, Algorithms, Machine Learning, DBMS, Operating Systems, Computer Networks
 
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+ACHIEVEMENTS & CERTIFICATIONS:
+- AWS Certified Cloud Practitioner
+- Google Data Analytics Certificate
+- Winner — Smart India Hackathon (College Level)
+- Top 10 — National-level AI Hackathon
+- Open Source Contributor to LangChain and several student developer projects
 
-        const chunk = decoder.decode(value);
-        botDiv.textContent += chunk;
+CONTACT:
+- Email: sricharan@example.com
+- GitHub: github.com/sricharan
+- LinkedIn: linkedin.com/in/sricharan
+- Portfolio: sricharan.dev
 
-        messages.scrollTop = messages.scrollHeight;
-    }
+Keep answers concise and conversational. Use emojis sparingly. If you don't know something specific, say so honestly.`;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const messagesEl  = document.getElementById('messages');
+const inputEl     = document.getElementById('msgInput');
+const typingEl    = document.getElementById('typingBubble');
+const sendBtn     = document.getElementById('sendBtn');
+
+let conversationHistory = [];
+let isStreaming = false;
+
+function getTime() {
+  return new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
 }
 
-// ENTER KEY SUPPORT
-document.getElementById("input").addEventListener("keydown", e => {
-    if (e.key === "Enter") send();
-});
-</script>
+function appendMessage(role, text, streaming = false) {
+  const wrap = document.createElement('div');
+  wrap.className = `msg ${role}`;
 
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+
+  const time = document.createElement('div');
+  time.className = 'msg-time';
+  time.textContent = getTime();
+
+  wrap.appendChild(bubble);
+  wrap.appendChild(time);
+  messagesEl.appendChild(wrap);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+
+  return { wrap, bubble, time };
+}
+
+function showTyping(show) {
+  typingEl.classList.toggle('visible', show);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function autoResize() {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 100) + 'px';
+}
+inputEl.addEventListener('input', autoResize);
+inputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+});
+
+// ── Send ─────────────────────────────────────────────────────────────────────
+async function sendPrompt(text) {
+  inputEl.value = text;
+  autoResize();
+  await handleSend();
+}
+
+async function handleSend() {
+  if (isStreaming) return;
+  const text = inputEl.value.trim();
+  if (!text) return;
+
+  inputEl.value = '';
+  autoResize();
+  isStreaming = true;
+  sendBtn.style.opacity = '0.5';
+
+  // User bubble
+  appendMessage('user', text);
+  conversationHistory.push({ role: 'user', content: text });
+
+  // Typing indicator
+  showTyping(true);
+
+  // Bot bubble (streaming target)
+  let botNode = null;
+  let fullReply = '';
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 700,
+        system: SYSTEM_PROMPT,
+        messages: conversationHistory,
+        stream: true
+      })
+    });
+
+    showTyping(false);
+    botNode = appendMessage('bot', '');
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') break;
+        try {
+          const evt = JSON.parse(data);
+          if (evt.type === 'content_block_delta' && evt.delta?.text) {
+            fullReply += evt.delta.text;
+            botNode.bubble.textContent = fullReply;
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+          }
+        } catch {}
+      }
+    }
+
+    botNode.time.textContent = getTime();
+    conversationHistory.push({ role: 'assistant', content: fullReply });
+
+  } catch (err) {
+    showTyping(false);
+    if (!botNode) botNode = appendMessage('bot', '');
+    botNode.bubble.textContent = '⚠️ Something went wrong. Please try again.';
+    botNode.bubble.style.color = '#ff6b8a';
+    console.error(err);
+  } finally {
+    isStreaming = false;
+    sendBtn.style.opacity = '1';
+    inputEl.focus();
+  }
+}
+</script>
 </body>
 </html>
