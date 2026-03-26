@@ -1,133 +1,73 @@
-/* ============================================================
-   SENSEI — Sri Charan's AI · script.js
-   ============================================================ */
+let controller = null;
 
-let messages = [];
-let jarvis = false;
-let isStreaming = false;
+let history = [
+    { role: "system", content: "You are a helpful assistant." }
+];
 
-const chatDiv  = document.getElementById("chat");
-const welcome  = document.getElementById("welcome");
-const sendBtn  = document.getElementById("sendBtn");
-const inputEl  = document.getElementById("input");
+async function sendMessage(customText=null) {
+    const input = document.getElementById("input");
+    const text = customText || input.value;
 
-/* ─── SEND ─── */
-function send() {
-  const text = inputEl.value.trim();
-  if (!text || isStreaming) return;
+    if (!text) return;
 
-  inputEl.value = "";
-  autoResize(inputEl);
-  hideWelcome();
+    addMessage(text, "user");
+    input.value = "";
 
-  if (text.toLowerCase().includes("jarvis")) jarvis = true;
+    history.push({ role: "user", content: text });
 
-  messages.push({ role: "user", content: text });
-  renderBubble("user", text);
+    const aiDiv = addMessage("Thinking...", "ai");
 
-  const botMsgEl = renderBubble("bot", "", true);
+    controller = new AbortController();
 
-  isStreaming = true;
-  sendBtn.disabled = true;
+    const response = await fetch("/chat", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ messages: history }),
+        signal: controller.signal
+    });
 
-  fetch("/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages, jarvis })
-  }).then(res => {
-    const reader  = res.body.getReader();
+    const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let fullText  = "";
 
-    function read() {
-      reader.read().then(({ done, value }) => {
-        if (done) return finalize();
+    aiDiv.innerHTML = "";
+
+    let fullText = "";
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
         const chunk = decoder.decode(value);
-        const lines = chunk.split("\n");
+        fullText += chunk;
 
-        let skipNextData = false;
-        lines.forEach(line => {
-          if (line.startsWith("event: end")) {
-            skipNextData = true;
-            messages.push({ role: "assistant", content: fullText });
-            return;
-          }
-          if (line.startsWith("data: ")) {
-            if (skipNextData) { skipNextData = false; return; }
-            const token = line.slice(6);
-            fullText += token;
-            botMsgEl.innerText = fullText;
-            chatDiv.scrollTop = chatDiv.scrollHeight;
-          }
-        });
-
-        read();
-      });
+        aiDiv.innerHTML = fullText + `<span class="cursor"></span>`;
+        scrollBottom();
     }
 
-    function finalize() {
-      botMsgEl.classList.remove("streaming");
-      isStreaming = false;
-      sendBtn.disabled = false;
-      inputEl.focus();
-    }
+    aiDiv.innerHTML = fullText;
 
-    read();
-  }).catch(() => {
-    botMsgEl.innerText = "Something went wrong. Try again.";
-    botMsgEl.classList.remove("streaming");
-    isStreaming = false;
-    sendBtn.disabled = false;
-  });
+    history.push({ role: "assistant", content: fullText });
 }
 
-/* ─── RENDER BUBBLE ─── */
-function renderBubble(role, text, streaming = false) {
-  const row = document.createElement("div");
-  row.className = "msg-row " + role;
-
-  const label = document.createElement("div");
-  label.className = "msg-label";
-  label.textContent = role === "user" ? "YOU" : "SENSEI";
-
-  const bubble = document.createElement("div");
-  bubble.className = "msg " + role + (streaming ? " streaming" : "");
-  bubble.innerText = text;
-
-  row.appendChild(label);
-  row.appendChild(bubble);
-  chatDiv.appendChild(row);
-  chatDiv.scrollTop = chatDiv.scrollHeight;
-
-  return bubble;
+function quickAsk(text) {
+    sendMessage(text);
 }
 
-/* ─── HELPERS ─── */
-function hideWelcome() {
-  if (welcome) welcome.style.display = "none";
+function stopStream() {
+    if (controller) controller.abort();
 }
 
-function prefill(text) {
-  inputEl.value = text;
-  inputEl.focus();
-  autoResize(inputEl);
+function addMessage(text, type) {
+    const div = document.createElement("div");
+    div.className = `msg ${type}`;
+    div.innerText = text;
+
+    document.getElementById("messages").appendChild(div);
+    scrollBottom();
+    return div;
 }
 
-function clearChat() {
-  location.reload();
+function scrollBottom() {
+    const box = document.getElementById("messages");
+    box.scrollTop = box.scrollHeight;
 }
-
-function handleKey(e) {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    send();
-  }
-}
-
-function autoResize(el) {
-  el.style.height = "auto";
-  el.style.height = Math.min(el.scrollHeight, 160) + "px";
-}
-
-window.addEventListener("DOMContentLoaded", () => inputEl.focus());
