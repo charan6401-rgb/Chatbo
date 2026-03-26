@@ -8,6 +8,15 @@ app = Flask(__name__)
 API_KEY = os.environ.get("OPENROUTER_API_KEY", "your_api_key_here")
 URL = "https://openrouter.ai/api/v1/chat/completions"
 
+# Auto-fallback model list — tries each if rate limited
+FREE_MODELS = [
+    "deepseek/deepseek-r1:free",
+    "google/gemma-3-27b-it:free",
+    "mistralai/mistral-7b-instruct:free",
+    "qwen/qwen3-8b:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+]
+
 
 def build_system_prompt():
     return """You are an intelligent, friendly AI assistant for Sri Charan's personal portfolio chatbot.
@@ -90,36 +99,50 @@ def chat():
         ] + user_messages
 
         def generate():
-            try:
-                headers = {
-                    "Authorization": f"Bearer {API_KEY}",
-                    "Content-Type": "application/json"
-                }
-                payload = {
-                    "model": "meta-llama/llama-3.3-70b-instruct:free",
-                    "messages": messages,
-                    "stream": True
-                }
-                with requests.post(URL, headers=headers, json=payload, stream=True) as r:
-                    if r.status_code != 200:
-                        yield f"[ERROR] API failed: {r.text}"
-                        return
-                    for line in r.iter_lines():
-                        if line:
-                            decoded = line.decode("utf-8")
-                            if decoded.startswith("data: "):
-                                chunk = decoded[6:]
-                                if chunk == "[DONE]":
-                                    break
-                                try:
-                                    json_data = json.loads(chunk)
-                                    delta = json_data["choices"][0]["delta"].get("content", "")
-                                    if delta:
-                                        yield delta
-                                except Exception:
-                                    continue
-            except Exception as e:
-                yield f"[ERROR] {str(e)}"
+            headers = {
+                "Authorization": f"Bearer {API_KEY}",
+                "Content-Type": "application/json"
+            }
+
+            # Try each model until one works
+            for model in FREE_MODELS:
+                try:
+                    payload = {
+                        "model": model,
+                        "messages": messages,
+                        "stream": True
+                    }
+                    with requests.post(URL, headers=headers, json=payload, stream=True) as r:
+                        # Rate limited — try next model
+                        if r.status_code == 429:
+                            continue
+
+                        if r.status_code != 200:
+                            yield f"[ERROR] API failed ({model}): {r.text}"
+                            return
+
+                        # Stream the response
+                        for line in r.iter_lines():
+                            if line:
+                                decoded = line.decode("utf-8")
+                                if decoded.startswith("data: "):
+                                    chunk = decoded[6:]
+                                    if chunk == "[DONE]":
+                                        return
+                                    try:
+                                        json_data = json.loads(chunk)
+                                        delta = json_data["choices"][0]["delta"].get("content", "")
+                                        if delta:
+                                            yield delta
+                                    except Exception:
+                                        continue
+                        return  # success — stop trying other models
+
+                except Exception as e:
+                    continue  # network error — try next model
+
+            # All models failed
+            yield "⚠️ All models are currently rate-limited. Please try again in a moment."
 
         return Response(stream_with_context(generate()), content_type="text/plain")
 
