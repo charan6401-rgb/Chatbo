@@ -2,7 +2,7 @@
    SENSEI — Sri Charan's AI · script.js
    ============================================================ */
 
-let messages = JSON.parse(localStorage.getItem("chat")) || [];
+let messages = [];
 let jarvis = false;
 let isStreaming = false;
 
@@ -10,12 +10,6 @@ const chatDiv  = document.getElementById("chat");
 const welcome  = document.getElementById("welcome");
 const sendBtn  = document.getElementById("sendBtn");
 const inputEl  = document.getElementById("input");
-
-// Restore previous session
-if (messages.length > 0) {
-  hideWelcome();
-  messages.forEach(m => renderBubble(m.role, m.content));
-}
 
 /* ─── SEND ─── */
 function send() {
@@ -61,7 +55,6 @@ function send() {
           }
           if (line.startsWith("event: end")) {
             messages.push({ role: "assistant", content: fullText });
-            localStorage.setItem("chat", JSON.stringify(messages));
           }
         });
 
@@ -118,7 +111,6 @@ function prefill(text) {
 }
 
 function clearChat() {
-  localStorage.clear();
   location.reload();
 }
 
