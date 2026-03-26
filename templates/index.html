@@ -35,7 +35,6 @@
     overflow: hidden;
   }
 
-  /* ── Animated mesh background ── */
   .bg-canvas {
     position: fixed; inset: 0; z-index: 0;
     background:
@@ -52,7 +51,6 @@
       repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,229,255,0.04) 40px);
   }
 
-  /* ── Layout ── */
   .app {
     position: relative; z-index: 1;
     display: flex; flex-direction: column;
@@ -61,7 +59,6 @@
     margin: 0 auto;
   }
 
-  /* ── Header ── */
   .header {
     display: flex; align-items: center; gap: 12px;
     padding: 18px 20px 14px;
@@ -99,7 +96,6 @@
     50% { opacity:0.5; transform:scale(0.8); }
   }
 
-  /* ── Suggested prompts ── */
   .prompts-strip {
     display: flex; gap: 8px;
     padding: 12px 16px;
@@ -126,7 +122,6 @@
     transform: translateY(-1px);
   }
 
-  /* ── Messages ── */
   .messages {
     flex: 1; overflow-y: auto;
     padding: 8px 16px 12px;
@@ -170,7 +165,6 @@
     margin-top: 4px; padding: 0 4px;
   }
 
-  /* typing indicator */
   .typing-bubble {
     background: var(--bubble-bot);
     border: 1px solid rgba(255,255,255,0.08);
@@ -187,7 +181,6 @@
   .dot:nth-child(3) { animation: blink 1.2s 0.4s infinite; }
   @keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
 
-  /* ── Input area ── */
   .input-area {
     flex-shrink: 0;
     padding: 12px 16px 20px;
@@ -228,7 +221,6 @@
   .send-btn:active { transform: scale(0.95); }
   .send-btn svg { width:16px; height:16px; fill:#040d1a; }
 
-  /* glass card for welcome */
   .welcome-card {
     margin: 16px 0 4px;
     padding: 18px 20px;
@@ -253,7 +245,6 @@
 
 <div class="app">
 
-  <!-- Header -->
   <header class="header">
     <div class="avatar">SC</div>
     <div class="header-info">
@@ -263,7 +254,6 @@
     <div class="status-dot"></div>
   </header>
 
-  <!-- Quick prompt chips -->
   <div class="prompts-strip" id="promptsStrip">
     <button class="prompt-chip" onclick="sendPrompt('Who is Sri Charan?')">👤 Who is Sri Charan?</button>
     <button class="prompt-chip" onclick="sendPrompt('Tell me about his projects')">🚀 Projects</button>
@@ -273,7 +263,6 @@
     <button class="prompt-chip" onclick="sendPrompt('What are his achievements?')">🏆 Achievements</button>
   </div>
 
-  <!-- Messages -->
   <div class="messages" id="messages">
     <div class="welcome-card">
       Hey there 👋 I'm <strong>Sri Charan's AI assistant</strong>.<br/>
@@ -286,14 +275,12 @@
     </div>
   </div>
 
-  <!-- Typing indicator lives outside messages, just before input -->
   <div style="padding: 0 16px 8px; flex-shrink:0;">
     <div class="typing-bubble" id="typingBubble">
       <div class="dot"></div><div class="dot"></div><div class="dot"></div>
     </div>
   </div>
 
-  <!-- Input -->
   <div class="input-area">
     <div class="input-wrap">
       <textarea id="msgInput" rows="1" placeholder="Ask about Sri Charan…"></textarea>
@@ -308,186 +295,133 @@
 </div>
 
 <script>
-// ── Profile & system prompt ──────────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are an intelligent, friendly AI assistant for Sri Charan's personal portfolio chatbot.
-Answer questions about Sri Charan naturally, warmly, and in a conversational tone.
+  // ── Point this to your Flask backend ──────────────────────────────────────
+  // If Flask and this HTML are on the same server/domain, use a relative path:
+  const BACKEND_URL = "/chat";
+  // If running locally (Flask on 5000, HTML opened separately), use:
+  // const BACKEND_URL = "http://localhost:5000/chat";
+  // After deploying to Render, use:
+  // const BACKEND_URL = "https://your-app-name.onrender.com/chat";
+  // ──────────────────────────────────────────────────────────────────────────
 
-Here is everything you know about Sri Charan:
+  const messagesEl = document.getElementById('messages');
+  const inputEl    = document.getElementById('msgInput');
+  const typingEl   = document.getElementById('typingBubble');
+  const sendBtn    = document.getElementById('sendBtn');
 
-NAME: Sri Charan
-ROLE: Full-Stack Developer & AI/ML Enthusiast
-LOCATION: Hyderabad, India
+  let conversationHistory = [];
+  let isStreaming = false;
 
-ABOUT:
-Sri Charan is a passionate software developer with a strong foundation in full-stack web development and a growing expertise in Artificial Intelligence and Machine Learning. He loves building intelligent, user-centric applications that solve real-world problems. He is known for clean code, creative problem-solving, and a strong drive to continuously learn and grow.
-
-SKILLS:
-- Frontend: React.js, Next.js, HTML5, CSS3, JavaScript (ES6+), Tailwind CSS
-- Backend: Python (Flask, FastAPI), Node.js, Express.js
-- AI/ML: Machine Learning, Deep Learning, NLP, LangChain, Hugging Face, OpenAI API
-- Databases: MongoDB, PostgreSQL, MySQL, Firebase
-- Cloud & DevOps: AWS, Docker, Git, GitHub Actions
-- Other: REST APIs, WebSockets, Prompt Engineering
-
-PROJECTS:
-1. AI Portfolio Chatbot — A glassmorphism-styled mobile chatbot powered by a language model, allowing visitors to interactively learn about Sri Charan's work, skills, and background.
-2. Smart Resume Analyzer — An NLP-powered tool that parses resumes, extracts key information, matches skills against job descriptions, and provides a fit score.
-3. Real-Time Collaborative Code Editor — A browser-based IDE with live multi-user editing, syntax highlighting, and chat, built using WebSockets and React.
-4. E-Commerce Platform — A full-stack MERN application with product management, cart, payments (Razorpay), and admin dashboard.
-5. ML Crop Disease Detector — A deep learning model (CNN) that detects crop diseases from leaf images with ~94% accuracy, deployed as a Flask API with a React frontend.
-6. StudyBuddy — An AI study assistant that summarizes documents, generates flashcards, and creates quizzes using LangChain and OpenAI.
-
-EDUCATION:
-- B.Tech in Computer Science & Engineering — [University Name], Hyderabad (2022–2026)
-- Relevant Coursework: Data Structures, Algorithms, Machine Learning, DBMS, Operating Systems, Computer Networks
-
-ACHIEVEMENTS & CERTIFICATIONS:
-- AWS Certified Cloud Practitioner
-- Google Data Analytics Certificate
-- Winner — Smart India Hackathon (College Level)
-- Top 10 — National-level AI Hackathon
-- Open Source Contributor to LangChain and several student developer projects
-
-CONTACT:
-- Email: sricharan@example.com
-- GitHub: github.com/sricharan
-- LinkedIn: linkedin.com/in/sricharan
-- Portfolio: sricharan.dev
-
-Keep answers concise and conversational. Use emojis sparingly. If you don't know something specific, say so honestly.`;
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-const messagesEl  = document.getElementById('messages');
-const inputEl     = document.getElementById('msgInput');
-const typingEl    = document.getElementById('typingBubble');
-const sendBtn     = document.getElementById('sendBtn');
-
-let conversationHistory = [];
-let isStreaming = false;
-
-function getTime() {
-  return new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-}
-
-function appendMessage(role, text, streaming = false) {
-  const wrap = document.createElement('div');
-  wrap.className = `msg ${role}`;
-
-  const bubble = document.createElement('div');
-  bubble.className = 'bubble';
-  bubble.textContent = text;
-
-  const time = document.createElement('div');
-  time.className = 'msg-time';
-  time.textContent = getTime();
-
-  wrap.appendChild(bubble);
-  wrap.appendChild(time);
-  messagesEl.appendChild(wrap);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-
-  return { wrap, bubble, time };
-}
-
-function showTyping(show) {
-  typingEl.classList.toggle('visible', show);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-}
-
-function autoResize() {
-  inputEl.style.height = 'auto';
-  inputEl.style.height = Math.min(inputEl.scrollHeight, 100) + 'px';
-}
-inputEl.addEventListener('input', autoResize);
-inputEl.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
-});
-
-// ── Send ─────────────────────────────────────────────────────────────────────
-async function sendPrompt(text) {
-  inputEl.value = text;
-  autoResize();
-  await handleSend();
-}
-
-async function handleSend() {
-  if (isStreaming) return;
-  const text = inputEl.value.trim();
-  if (!text) return;
-
-  inputEl.value = '';
-  autoResize();
-  isStreaming = true;
-  sendBtn.style.opacity = '0.5';
-
-  // User bubble
-  appendMessage('user', text);
-  conversationHistory.push({ role: 'user', content: text });
-
-  // Typing indicator
-  showTyping(true);
-
-  // Bot bubble (streaming target)
-  let botNode = null;
-  let fullReply = '';
-
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 700,
-        system: SYSTEM_PROMPT,
-        messages: conversationHistory,
-        stream: true
-      })
-    });
-
-    showTyping(false);
-    botNode = appendMessage('bot', '');
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6).trim();
-        if (data === '[DONE]') break;
-        try {
-          const evt = JSON.parse(data);
-          if (evt.type === 'content_block_delta' && evt.delta?.text) {
-            fullReply += evt.delta.text;
-            botNode.bubble.textContent = fullReply;
-            messagesEl.scrollTop = messagesEl.scrollHeight;
-          }
-        } catch {}
-      }
-    }
-
-    botNode.time.textContent = getTime();
-    conversationHistory.push({ role: 'assistant', content: fullReply });
-
-  } catch (err) {
-    showTyping(false);
-    if (!botNode) botNode = appendMessage('bot', '');
-    botNode.bubble.textContent = '⚠️ Something went wrong. Please try again.';
-    botNode.bubble.style.color = '#ff6b8a';
-    console.error(err);
-  } finally {
-    isStreaming = false;
-    sendBtn.style.opacity = '1';
-    inputEl.focus();
+  function getTime() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
-}
+
+  function appendMessage(role, text) {
+    const wrap   = document.createElement('div');
+    wrap.className = `msg ${role}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+
+    const time = document.createElement('div');
+    time.className = 'msg-time';
+    time.textContent = getTime();
+
+    wrap.appendChild(bubble);
+    wrap.appendChild(time);
+    messagesEl.appendChild(wrap);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    return { wrap, bubble, time };
+  }
+
+  function showTyping(show) {
+    typingEl.classList.toggle('visible', show);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function autoResize() {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 100) + 'px';
+  }
+  inputEl.addEventListener('input', autoResize);
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+  });
+
+  async function sendPrompt(text) {
+    inputEl.value = text;
+    autoResize();
+    await handleSend();
+  }
+
+  async function handleSend() {
+    if (isStreaming) return;
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    inputEl.value = '';
+    autoResize();
+    isStreaming = true;
+    sendBtn.style.opacity = '0.5';
+
+    // Show user message
+    appendMessage('user', text);
+    conversationHistory.push({ role: 'user', content: text });
+
+    showTyping(true);
+
+    let botNode  = null;
+    let fullReply = '';
+
+    try {
+      // ── Call YOUR Flask /chat endpoint ──────────────────────────────────
+      const response = await fetch(BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: conversationHistory })
+        // The backend prepends the system prompt automatically,
+        // so we only send the conversation history here.
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      showTyping(false);
+      botNode = appendMessage('bot', '');
+
+      // ── Read the streamed plain-text response ───────────────────────────
+      const reader  = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        fullReply += chunk;
+        botNode.bubble.textContent = fullReply;
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+      // ────────────────────────────────────────────────────────────────────
+
+      botNode.time.textContent = getTime();
+      conversationHistory.push({ role: 'assistant', content: fullReply });
+
+    } catch (err) {
+      showTyping(false);
+      if (!botNode) botNode = appendMessage('bot', '');
+      botNode.bubble.textContent = '⚠️ Could not reach the server. Please try again.';
+      botNode.bubble.style.color = '#ff6b8a';
+      console.error('Chat error:', err);
+    } finally {
+      isStreaming = false;
+      sendBtn.style.opacity = '1';
+      inputEl.focus();
+    }
+  }
 </script>
 </body>
 </html>
