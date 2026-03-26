@@ -1,10 +1,13 @@
 from flask import Flask, render_template, request, Response, stream_with_context
 import requests
 import json
+import os
 
 app = Flask(__name__)
 
-API_KEY = "YOUR_OPENROUTER_API_KEY"
+# ✅ Load API key from environment (SAFE)
+API_KEY = os.environ.get("OPENROUTER_API_KEY")
+
 URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
@@ -14,7 +17,7 @@ def load_profile():
         return json.load(f)
 
 
-# ✅ GENERIC SYSTEM PROMPT (NO HARD-CODED FIELDS)
+# ✅ SYSTEM PROMPT
 def build_system_prompt(profile_data):
     return f"""
 You are a personal AI assistant for the person described below.
@@ -40,13 +43,11 @@ def chat():
     data = request.json
     user_messages = data.get("messages", [])
 
-    # ✅ Always reload JSON (so updates reflect instantly)
     profile_data = load_profile()
 
     messages = [
         {"role": "system", "content": build_system_prompt(profile_data)}
     ] + user_messages
-
 
     def generate():
         headers = {
@@ -83,5 +84,7 @@ def chat():
     return Response(stream_with_context(generate()), content_type="text/plain")
 
 
+# ✅ REQUIRED FOR RENDER
 if __name__ == "__main__":
-    app.run(debug=True, threaded=True)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
