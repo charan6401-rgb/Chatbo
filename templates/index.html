@@ -2,36 +2,177 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Sri Charan's AI</title>
-<link rel="stylesheet" href="/static/style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sri Charan AI</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+    height: 100vh;
+    background: linear-gradient(135deg, #0a1f6d, #00c6ff);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+/* HERO */
+.hero {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.hero h1 {
+    font-size: 32px;
+    font-weight: 600;
+}
+
+.hero p {
+    opacity: 0.8;
+    margin-top: 8px;
+}
+
+/* CHAT CONTAINER */
+.chat-box {
+    width: 600px;
+    max-width: 90%;
+}
+
+/* GLASS INPUT */
+.glass-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    border-radius: 20px;
+    backdrop-filter: blur(25px);
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.glass-input input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: white;
+    font-size: 16px;
+}
+
+.glass-input input::placeholder {
+    color: rgba(255,255,255,0.6);
+}
+
+.send-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #4cff7f;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* CHAT AREA */
+.messages {
+    position: fixed;
+    bottom: 120px;
+    width: 600px;
+    max-width: 90%;
+    max-height: 50vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.msg {
+    padding: 12px 16px;
+    border-radius: 14px;
+    max-width: 70%;
+}
+
+.user {
+    align-self: flex-end;
+    background: #00c6ff;
+}
+
+.bot {
+    align-self: flex-start;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(10px);
+}
+</style>
 </head>
 
 <body>
 
-<div class="app">
-    <div class="chat-container">
+<div class="hero">
+    <h1>Hi, I’m Sri Charan AI</h1>
+    <p>How can I help you today?</p>
+</div>
 
-        <div class="header">
-            Sri Charan's AI
-        </div>
+<div class="messages" id="messages"></div>
 
-        <div id="messages"></div>
-
-        <div class="quick-actions">
-            <button onclick="quickAsk('Tell me about your projects')">Projects</button>
-            <button onclick="quickAsk('What are your skills?')">Skills</button>
-            <button onclick="quickAsk('Who are you?')">About</button>
-        </div>
-
-        <div class="input-box">
-            <input id="input" placeholder="Ask about me..." />
-            <button onclick="sendMessage()">Send</button>
-            <button onclick="stopStream()">Stop</button>
-        </div>
-
+<div class="chat-box">
+    <div class="glass-input">
+        <input id="input" placeholder="Ask anything...">
+        <button class="send-btn" onclick="send()">↑</button>
     </div>
 </div>
 
-<script src="/static/script.js"></script>
+<script>
+async function send() {
+    const input = document.getElementById("input");
+    const messages = document.getElementById("messages");
+
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = "";
+
+    // user msg
+    messages.innerHTML += `<div class="msg user">${text}</div>`;
+
+    // bot msg
+    const botDiv = document.createElement("div");
+    botDiv.className = "msg bot";
+    messages.appendChild(botDiv);
+
+    const res = await fetch("/chat", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            messages: [{ role: "user", content: text }]
+        })
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        botDiv.textContent += chunk;
+
+        messages.scrollTop = messages.scrollHeight;
+    }
+}
+
+// ENTER KEY SUPPORT
+document.getElementById("input").addEventListener("keydown", e => {
+    if (e.key === "Enter") send();
+});
+</script>
+
 </body>
 </html>
