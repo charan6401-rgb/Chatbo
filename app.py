@@ -69,7 +69,7 @@ ACHIEVEMENTS:
 
 CONTACT:
 - Email: charan6401@gmail.com
-- GitHub: github.com/charan6401-syh
+- GitHub: https://github.com/charan6401-rgb
 - Portfolio: https://portfolio-fn9z.onrender.com
 - AI Chatbot: https://sri-charans-ai.onrender.com
 
