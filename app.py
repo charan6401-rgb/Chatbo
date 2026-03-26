@@ -1,10 +1,11 @@
-from flask import Flask, request, Response, stream_with_context
+from flask import Flask, request, Response, stream_with_context, send_from_directory
 import requests
 import json
+import os
 
 app = Flask(__name__)
 
-API_KEY = "your_api_key_here"
+API_KEY = os.environ.get("OPENROUTER_API_KEY", "your_api_key_here")
 URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
@@ -41,22 +42,30 @@ PROJECTS:
 6. StudyBuddy — AI study assistant that summarizes docs and generates flashcards using LangChain.
 
 EDUCATION:
-- intermediate 1st year-2025-2026,sri rama junior college, Hyderabad
+- Intermediate 1st Year (2025-2026), Sri Rama Junior College, Hyderabad
 
 CONTACT:
 - Email: charan6401@gmail.com
-- GitHub: charan6401-rgb
+- GitHub: github.com/charan6401-rgb
 - Portfolio: https://portfolio-fn9z.onrender.com
 
-Keep answers concise and conversational. Use emojis sparingly."""
+Keep answers concise and conversational. Use emojis sparingly. If you don't know something, say so honestly."""
 
 
+# ── Serve the frontend ────────────────────────────────────────────────────────
+@app.route("/")
+def index():
+    return send_from_directory('.', 'index.html')
+
+
+# ── Chat endpoint ─────────────────────────────────────────────────────────────
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
         data = request.json
         user_messages = data.get("messages", [])
         profile_data = load_profile()
+
         messages = [
             {"role": "system", "content": build_system_prompt(profile_data)}
         ] + user_messages
@@ -68,7 +77,7 @@ def chat():
                     "Content-Type": "application/json"
                 }
                 payload = {
-                    "model": "mistralai/mixtral-8x7b-instruct",
+                    "model": "meta-llama/llama-3.3-70b-instruct:free",
                     "messages": messages,
                     "stream": True
                 }
@@ -94,6 +103,7 @@ def chat():
                 yield f"[ERROR] {str(e)}"
 
         return Response(stream_with_context(generate()), content_type="text/plain")
+
     except Exception as e:
         return {"error": str(e)}, 500
 
