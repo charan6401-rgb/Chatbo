@@ -2,66 +2,34 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sensei — Sri Charan's AI</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<title>Sri Charan AI</title>
 <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
 
-<div class="noise"></div>
-
 <div class="app">
+    <div class="chat-container">
 
-  <!-- HEADER -->
-  <header class="header">
-    <div class="header-left">
-      <span class="logo-dot"></span>
-      <span class="logo-label">SENSEI</span>
-      <span class="logo-sub">/ Sri Charan's AI</span>
-    </div>
-    <div class="header-right">
-      <span class="status-dot"></span>
-      <span class="status-text">online</span>
-      <button class="clear-btn" onclick="clearChat()">Clear</button>
-    </div>
-  </header>
+        <div class="header">
+            Sri Charan AI
+        </div>
 
-  <!-- CHAT AREA -->
-  <main id="chat" class="chat">
-    <div class="welcome" id="welcome">
-      <div class="welcome-tag">— AI ASSISTANT</div>
-      <h1 class="welcome-title">Say <em>hello</em></h1>
-      <p class="welcome-sub">Ask me anything about Sri Charan, his projects, or just have a conversation.</p>
-      <div class="welcome-chips">
-        <button class="chip" onclick="prefill('Who is Sri Charan?')">Who is Sri Charan?</button>
-        <button class="chip" onclick="prefill('Tell me about his AI chatbot project')">His projects</button>
-        <button class="chip" onclick="prefill('What skills does he have?')">Skills &amp; tools</button>
-      </div>
-    </div>
-  </main>
+        <div id="messages"></div>
 
-  <!-- INPUT AREA -->
-  <footer class="input-area">
-    <div class="input-wrap">
-      <textarea
-        id="input"
-        rows="1"
-        placeholder="Ask anything..."
-        onkeydown="handleKey(event)"
-        oninput="autoResize(this)"
-      ></textarea>
-      <button class="send-btn" onclick="send()" id="sendBtn">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <path d="M14 8L2 2l3 6-3 6 12-6z" fill="currentColor"/>
-        </svg>
-      </button>
-    </div>
-    <div class="input-hint">Press <kbd>Enter</kbd> to send &nbsp;·&nbsp; <kbd>Shift+Enter</kbd> for newline</div>
-  </footer>
+        <div class="quick-actions">
+            <button onclick="quickAsk('Tell me about your projects')">Projects</button>
+            <button onclick="quickAsk('What are your skills?')">Skills</button>
+            <button onclick="quickAsk('Who are you?')">About</button>
+        </div>
 
+        <div class="input-box">
+            <input id="input" placeholder="Ask about me..." />
+            <button onclick="sendMessage()">Send</button>
+            <button onclick="stopStream()">Stop</button>
+        </div>
+
+    </div>
 </div>
 
 <script src="/static/script.js"></script>
