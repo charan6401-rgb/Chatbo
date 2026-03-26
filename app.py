@@ -13,23 +13,48 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(BASE_DIR, "portfolio_data.json"), "r") as f:
     PORTFOLIO = json.load(f)
 
-PORTFOLIO_TEXT = json.dumps(PORTFOLIO, indent=2)
+p = PORTFOLIO  # shorthand
 
-SYSTEM_PROMPT = f"""You are Sensei — the personal AI assistant on Sri Charan's portfolio website.
-You speak ON BEHALF of Sri Charan in first person ("I built...", "My goal is...").
-Tone: calm, intelligent, slightly witty. Never robotic.
+SYSTEM_PROMPT = f"""You are Sensei — the personal AI voice of Sri Charan's portfolio website.
+Speak as Sri Charan in first person. Tone: calm, intelligent, slightly witty.
+Only use the facts below. Never make anything up.
 
-Answer ONLY using the portfolio data below. Do not make anything up.
-If info is not in the data, say so and invite them to reach out via email: charan6401@gmail.com
+NAME: {p['personal']['name']}
+TITLE: {p['personal']['title']}
+LOCATION: {p['personal']['location']}
+STUDYING AT: {p['personal']['studying_at']}
+GOAL: {p['personal']['goal']}
+CURRENTLY BUILDING: {p['personal']['currently_building']}
 
-PORTFOLIO DATA:
-{PORTFOLIO_TEXT}
+BIO:
+{chr(10).join('- ' + b for b in p['personal']['bio'])}
 
-Rules:
-- Speak as Sri Charan's voice/representative.
-- Be concise unless detail is asked for.
-- Share real URLs from the data when relevant.
-- Never invent skills, projects, or achievements not listed."""
+QUOTE: "{p['personal']['quote']}"
+
+SKILLS:
+- Languages: {', '.join(p['skills']['languages'])}
+- Web: {', '.join(p['skills']['web'])}
+- Tools: {', '.join(p['skills']['tools'])}
+- Concepts: {', '.join(p['skills']['concepts'])}
+
+PROJECTS:
+1. {p['projects'][0]['name']} ({p['projects'][0]['status']}) — {p['projects'][0]['description']} Tech: {', '.join(p['projects'][0]['tech'])}. URL: {p['projects'][0]['url']}
+2. {p['projects'][1]['name']} ({p['projects'][1]['status']}) — {p['projects'][1]['description']} Tech: {', '.join(p['projects'][1]['tech'])}. URL: {p['projects'][1]['url']}
+3. {p['projects'][2]['name']} ({p['projects'][2]['status']}) — {p['projects'][2]['description']} Tech: {', '.join(p['projects'][2]['tech'])}.
+
+ACHIEVEMENTS:
+{chr(10).join('- ' + a for a in p['achievements'])}
+
+EDUCATION: {p['education'][0]['degree']} at {p['education'][0]['institution']} ({p['education'][0]['period']})
+
+CONTACT:
+- Email: {p['contact']['email']}
+- GitHub: {p['contact']['github']}
+- Portfolio: {p['contact']['portfolio_url']}
+- AI Chatbot: {p['contact']['chatbot_url']}
+
+If asked something not covered above, say it's not shared publicly yet and suggest emailing {p['contact']['email']}.
+""".strip()
 
 
 @app.route("/")
@@ -40,25 +65,9 @@ def home():
 @app.route("/chat", methods=["POST"])
 def chat():
     req_data = request.json
-    user_messages = req_data.get("messages", [])
+    messages = req_data.get("messages", [])
 
-    # Belt-and-suspenders: for the very first user message, prepend context
-    # directly into the user turn so models that ignore system prompts still work
-    augmented_messages = []
-    for i, msg in enumerate(user_messages):
-        if i == 0 and msg["role"] == "user":
-            augmented_messages.append({
-                "role": "user",
-                "content": (
-                    f"[Context: You are Sensei, Sri Charan's portfolio AI. "
-                    f"Answer only from this data: {PORTFOLIO_TEXT}]\n\n"
-                    f"{msg['content']}"
-                )
-            })
-        else:
-            augmented_messages.append(msg)
-
-    full_messages = [{"role": "system", "content": SYSTEM_PROMPT}] + augmented_messages
+    full_messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages
 
     def generate():
         try:
@@ -68,10 +77,10 @@ def chat():
                     "Authorization": f"Bearer {API_KEY}",
                     "Content-Type": "application/json",
                     "HTTP-Referer": "https://portfolio-fn9z.onrender.com",
-                    "X-Title": "Sri Charan Portfolio AI"
+                    "X-Title": "Sri Charan Portfolio"
                 },
                 json={
-                    "model": "mistralai/mistral-7b-instruct:free",
+                    "model": "meta-llama/llama-3.3-70b-instruct:free",
                     "stream": True,
                     "messages": full_messages
                 },
