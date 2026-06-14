@@ -8,15 +8,16 @@ app = Flask(__name__)
 API_KEY = os.environ.get("OPENROUTER_API_KEY", "your_api_key_here")
 URL = "https://openrouter.ai/api/v1/chat/completions"
 
-# openrouter/free = official OpenRouter auto-router (March 2026, confirmed working)
-# It picks a live free model automatically — no more 404 or 429 from bad model IDs
 FREE_MODELS = [
-    "openrouter/free",                           # primary: auto-picks best free model
-    "meta-llama/llama-3.3-70b-instruct:free",    # fallback 1
-    "google/gemma-3-27b-it:free",                # fallback 2
-    "mistralai/mistral-7b-instruct:free",        # fallback 3
-    "qwen/qwen3-8b:free",                        # fallback 4
+    "openrouter/free",
+    "openai/gpt-oss-120b:free",
+    "google/gemma-3-27b-it:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "qwen/qwen3-8b:free",
+    "mistralai/mistral-7b-instruct:free",
 ]
+
+REASONING_MODELS = {"openai/gpt-oss-120b:free"}
 
 
 def build_system_prompt():
@@ -58,8 +59,37 @@ PROJECTS:
    Hand-coded from scratch. No templates. Fully responsive with dark red & gold palette.
    URL: https://portfolio-fn9z.onrender.com | Tech: HTML, CSS, JavaScript
 
-3. Coming Next — DSA Visualizer + Python automation tool (in progress)
-   Tech: C++, Python
+3. Mates (Upcoming Project)
+
+Mates is an upcoming social platform being built by Sri Charan with a focus on meaningful connections and real-time interaction.
+
+Unlike traditional social apps that prioritize endless scrolling, Mates aims to create a cleaner and more engaging space where users can connect with friends, chat instantly, manage friend requests, and stay connected through a modern and responsive interface.
+
+The project is currently under active development and serves as one of Sri Charan's most ambitious full-stack projects so far. It is being built to strengthen his skills in frontend development, backend architecture, authentication systems, databases, and real-time communication.
+
+Planned Features:
+
+* User authentication and account management
+* Friend requests and friend management
+* Real-time messaging
+* Online/offline status indicators
+* User profiles and customization
+* Responsive design for desktop and mobile
+* Secure backend and database integration
+
+Status: In Development 🚧
+
+Tech Stack:
+
+* React / Next.js
+* JavaScript / TypeScript
+* Supabase
+* Real-time APIs
+* Modern web technologies
+
+Goal:
+To build a complete social networking experience while learning how large-scale web applications are designed, developed, and deployed.
+
 
 ACHIEVEMENTS:
 - Deployed a live AI chatbot accessible at a real public URL
@@ -83,7 +113,7 @@ def index():
 
 @app.route("/ping")
 def ping():
-    return {"status": "ok", "model": "openrouter/free", "version": "2.0"}
+    return {"status": "ok", "version": "2.1", "fallbacks": FREE_MODELS}
 
 
 @app.route("/chat", methods=["POST"])
@@ -91,53 +121,90 @@ def chat():
     try:
         data = request.json
         user_messages = data.get("messages", [])
-        messages = [
-            {"role": "system", "content": build_system_prompt()}
-        ] + user_messages
+        messages = [{"role": "system", "content": build_system_prompt()}] + user_messages
 
         def generate():
             headers = {
                 "Authorization": f"Bearer {API_KEY}",
                 "Content-Type": "application/json",
                 "HTTP-Referer": "https://sri-charans-ai.onrender.com",
-                "X-Title": "Sri Charan AI Chatbot"
+                "X-Title": "Sri Charan AI Chatbot",
             }
 
-            for model in FREE_MODELS:
+            for index, model in enumerate(FREE_MODELS):
+                if index == 0:
+                    print(f"Trying model: {model}")
+                else:
+                    print(f"Switching to fallback...")
+                    print(f"Trying model: {model}")
+
                 try:
                     payload = {
                         "model": model,
                         "messages": messages,
-                        "stream": True
+                        "stream": True,
                     }
-                    with requests.post(URL, headers=headers, json=payload, stream=True, timeout=30) as r:
-                        if r.status_code in (429, 404, 503):
-                            continue  # rate limited or unavailable — try next
+
+                    if model in REASONING_MODELS:
+                        payload["reasoning"] = {"enabled": True}
+
+                    with requests.post(
+                        URL,
+                        headers=headers,
+                        json=payload,
+                        stream=True,
+                        timeout=30,
+                    ) as r:
+                        if r.status_code in (404, 429, 503):
+                            print(f"Model failed: {model} (HTTP {r.status_code})")
+                            continue
 
                         if r.status_code != 200:
-                            continue  # any other error — try next
+                            print(f"Model failed: {model} (HTTP {r.status_code})")
+                            continue
 
-                        # Stream chunks back to frontend
+                        # Streamed successfully — begin forwarding chunks
+                        print(f"Using model: {model}")
+                        streamed_any = False
+
                         for line in r.iter_lines():
-                            if line:
-                                decoded = line.decode("utf-8")
-                                if decoded.startswith("data: "):
-                                    chunk = decoded[6:]
-                                    if chunk.strip() == "[DONE]":
-                                        return
-                                    try:
-                                        json_data = json.loads(chunk)
-                                        delta = json_data["choices"][0]["delta"].get("content", "")
-                                        if delta:
-                                            yield delta
-                                    except Exception:
-                                        continue
-                        return  # streamed successfully — stop trying other models
+                            if not line:
+                                continue
+                            decoded = line.decode("utf-8")
+                            if not decoded.startswith("data: "):
+                                continue
+                            chunk = decoded[6:]
+                            if chunk.strip() == "[DONE]":
+                                return
+                            try:
+                                json_data = json.loads(chunk)
+                                # Skip reasoning/thinking tokens — only forward content
+                                delta = json_data["choices"][0]["delta"].get("content", "")
+                                if delta:
+                                    streamed_any = True
+                                    yield delta
+                            except (json.JSONDecodeError, KeyError, IndexError):
+                                continue
 
-                except Exception:
-                    continue  # network/timeout error — try next model
+                        # If we exited the loop without [DONE] but did stream content,
+                        # treat it as success. If nothing was streamed, try next model.
+                        if streamed_any:
+                            return
 
-            # All models failed
+                        print(f"Model failed: {model} (empty response)")
+
+                except requests.exceptions.Timeout:
+                    print(f"Model failed: {model} (timeout)")
+                    continue
+                except requests.exceptions.ConnectionError:
+                    print(f"Model failed: {model} (connection error)")
+                    continue
+                except Exception as e:
+                    print(f"Model failed: {model} (unexpected error: {e})")
+                    continue
+
+            # All models exhausted
+            print("All models failed. Sending error to client.")
             yield "⚠️ All models are currently unavailable. Please try again in a moment."
 
         return Response(stream_with_context(generate()), content_type="text/plain")
@@ -148,4 +215,3 @@ def chat():
 
 if __name__ == "__main__":
     app.run(debug=True)
-    
