@@ -1,180 +1,184 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const CHAT_API = '/chat';
   
-  // --- 1. Navbar Scroll Effect ---
-  const nav = document.querySelector('nav');
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 50) {
-      nav.classList.add('scrolled');
-    } else {
-      nav.classList.remove('scrolled');
+  let history = [];
+  let streaming = false;
+
+  const conv = document.getElementById('conversation');
+  const input = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const welcome = document.getElementById('welcome');
+  const prompts = document.getElementById('prompts');
+
+  // Input Handlers
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
     }
   });
 
-  // --- 2. GSAP Scroll Animations ---
-  gsap.registerPlugin(ScrollTrigger);
-
-  // Animate text reveal in Features section
-  gsap.from(".reveal-text", {
-    scrollTrigger: {
-      trigger: "#explore",
-      start: "top 80%",
-    },
-    y: 50,
-    opacity: 0,
-    duration: 1,
-    ease: "power3.out"
+  prompts.addEventListener('click', (e) => {
+    const chip = e.target.closest('.prompt-chip');
+    if (!chip) return;
+    input.value = chip.dataset.q;
+    send();
   });
 
-  // Animate cards staggered reveal
-  gsap.from(".reveal-card", {
-    scrollTrigger: {
-      trigger: "#explore",
-      start: "top 60%",
-    },
-    y: 100,
-    opacity: 0,
-    rotationX: -15, // 3D flip effect on scroll
-    duration: 1.2,
-    stagger: 0.2,
-    ease: "power4.out"
-  });
+  sendBtn.addEventListener('click', send);
 
-  // --- 3. 3D Parallax Tilt Effect (Vanilla JS) ---
-  const tiltElements = document.querySelectorAll('.tilt-card, #hero-content');
+  async function send() {
+    const text = input.value.trim();
+    if (!text || streaming) return;
 
-  tiltElements.forEach(el => {
-    el.addEventListener('mousemove', (e) => {
-      const rect = el.getBoundingClientRect();
-      const x = e.clientX - rect.left; // x position within the element.
-      const y = e.clientY - rect.top;  // y position within the element.
-      
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-      
-      // Calculate rotation based on cursor position (max 10 degrees)
-      const rotateX = ((y - centerY) / centerY) * -10;
-      const rotateY = ((x - centerX) / centerX) * 10;
+    streaming = true;
+    setInputState(false);
+    hideWelcome();
 
-      el.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
-    });
+    // Render User Query
+    addUserMessage(text);
+    history.push({ role: 'user', content: text });
+    input.value = '';
 
-    el.addEventListener('mouseleave', () => {
-      // Smooth reset
-      el.style.transition = 'transform 0.5s ease-out';
-      el.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
-      
-      // Remove transition so mousemove is instantaneous again
-      setTimeout(() => { el.style.transition = ''; }, 500);
-    });
-  });
+    // Render Waiting State
+    const typingId = 'typing-' + Date.now();
+    addTypingIndicator(typingId);
 
-  // --- 4. Massive Interactive 3D Canvas Matrix ---
-  const canvas = document.getElementById('hero-canvas');
-  const ctx = canvas.getContext('2d');
-  
-  let width, height;
-  let particles = [];
-  
-  // Mouse tracking for the canvas
-  let mouse = { x: -1000, y: -1000 };
-  window.addEventListener('mousemove', (e) => {
-    mouse.x = e.clientX;
-    mouse.y = e.clientY;
-  });
+    try {
+      const res = await fetch(CHAT_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history }),
+      });
 
-  function resize() {
-    width = canvas.width = window.innerWidth;
-    height = canvas.height = window.innerHeight;
-  }
-  window.addEventListener('resize', resize);
-  resize();
+      if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
 
-  class Particle {
-    constructor() {
-      this.x = Math.random() * width;
-      this.y = Math.random() * height;
-      this.z = Math.random() * 200 + 50; // Pseudo 3D depth
-      this.baseX = this.x;
-      this.baseY = this.y;
-      
-      // Speed based on Z depth (parallax)
-      this.speed = 100 / this.z;
-      this.angle = Math.random() * Math.PI * 2;
-    }
+      removeEl(typingId);
+      const bubble = addAIBubble();
 
-    update() {
-      // Auto movement
-      this.angle += 0.01;
-      this.x = this.baseX + Math.cos(this.angle) * 20;
-      this.y = this.baseY + Math.sin(this.angle) * 20;
+      // Core Streaming Engine
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
 
-      // Mouse interactivity (particles run away from mouse in 3D space)
-      let dx = mouse.x - this.x;
-      let dy = mouse.y - this.y;
-      let distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance < 200) {
-        let forceDirectionX = dx / distance;
-        let forceDirectionY = dy / distance;
-        let force = (200 - distance) / 200;
-        
-        this.x -= forceDirectionX * force * 50 * this.speed;
-        this.y -= forceDirectionY * force * 50 * this.speed;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullText += decoder.decode(value, { stream: true });
+        bubble.innerHTML = renderMarkdown(fullText);
+        scrollBottom();
       }
-    }
 
-    draw() {
-      // Size and opacity scale with Z depth
-      const scale = 100 / this.z;
-      const alpha = 1 - (this.z / 250);
-      
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, scale * 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(59, 130, 246, ${alpha * 0.8})`; // Blue accent
-      ctx.fill();
-    }
-  }
+      history.push({ role: 'assistant', content: fullText });
 
-  function initParticles() {
-    particles = [];
-    const particleCount = window.innerWidth < 768 ? 50 : 150;
-    for (let i = 0; i < particleCount; i++) {
-      particles.push(new Particle());
+    } catch (err) {
+      removeEl(typingId);
+      const errBubble = addAIBubble();
+      errBubble.innerHTML = `<span class="text-red-400">Connection error. Please try again.</span>`;
+      history.pop();
+    } finally {
+      streaming = false;
+      setInputState(true);
+      scrollBottom();
     }
   }
 
-  function animateCanvas() {
-    // Semi-transparent black for trail effect
-    ctx.fillStyle = 'rgba(3, 3, 5, 0.2)';
-    ctx.fillRect(0, 0, width, height);
+  // UI Engine Utilities
+  function setInputState(enabled) {
+    sendBtn.disabled = !enabled;
+    input.disabled = !enabled;
+    if (enabled) setTimeout(() => input.focus(), 10);
+  }
 
-    // Update and draw particles
-    particles.forEach(p => {
-      p.update();
-      p.draw();
+  function hideWelcome() {
+    if (welcome && welcome.parentNode) {
+      welcome.style.opacity = '0';
+      welcome.style.transform = 'scale(0.95)';
+      setTimeout(() => welcome.remove(), 300);
+    }
+  }
+
+  function scrollBottom() {
+    requestAnimationFrame(() => {
+      conv.scrollTo({ top: conv.scrollHeight, behavior: 'smooth' });
     });
-
-    // Draw connecting lines (The "Neural Matrix" effect)
-    for (let i = 0; i < particles.length; i++) {
-      for (let j = i; j < particles.length; j++) {
-        let dx = particles[i].x - particles[j].x;
-        let dy = particles[i].y - particles[j].y;
-        let distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance < 120) {
-          ctx.beginPath();
-          ctx.strokeStyle = `rgba(59, 130, 246, ${0.15 - distance / 800})`;
-          ctx.lineWidth = 1;
-          ctx.moveTo(particles[i].x, particles[i].y);
-          ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.stroke();
-        }
-      }
-    }
-
-    requestAnimationFrame(animateCanvas);
   }
 
-  initParticles();
-  animateCanvas();
+  function addUserMessage(text) {
+    const wrap = document.createElement('div');
+    wrap.className = 'flex justify-end w-full mb-4 animate-fade-in-up';
+    wrap.innerHTML = `
+      <div class="max-w-[80%] md:max-w-[70%]">
+        <div class="msg-user px-5 py-3 rounded-2xl text-sm leading-relaxed shadow-lg">${escapeHTML(text)}</div>
+        <div class="text-[10px] text-gray-500 mt-1 text-right pr-2">${nowTime()}</div>
+      </div>
+    `;
+    conv.appendChild(wrap);
+    scrollBottom();
+  }
+
+  function addAIBubble() {
+    const wrap = document.createElement('div');
+    wrap.className = 'flex justify-start w-full mb-4 animate-fade-in-up';
+    
+    const content = document.createElement('div');
+    content.className = 'max-w-[85%] md:max-w-[75%]';
+    
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-ai px-5 py-4 rounded-2xl text-sm leading-relaxed shadow-lg backdrop-blur-md';
+    
+    const time = document.createElement('div');
+    time.className = 'text-[10px] text-gray-500 mt-1 pl-2';
+    time.innerText = nowTime();
+
+    content.appendChild(bubble);
+    content.appendChild(time);
+    wrap.appendChild(content);
+    conv.appendChild(wrap);
+    
+    scrollBottom();
+    return bubble; 
+  }
+
+  function addTypingIndicator(id) {
+    const wrap = document.createElement('div');
+    wrap.id = id;
+    wrap.className = 'flex justify-start w-full mb-4 animate-fade-in-up';
+    wrap.innerHTML = `
+      <div class="msg-ai px-5 py-4 rounded-2xl flex items-center gap-1.5 shadow-lg">
+        <div class="w-2 h-2 rounded-full bg-blue-400 typing-dot"></div>
+        <div class="w-2 h-2 rounded-full bg-blue-400 typing-dot"></div>
+        <div class="w-2 h-2 rounded-full bg-blue-400 typing-dot"></div>
+      </div>
+    `;
+    conv.appendChild(wrap);
+    scrollBottom();
+  }
+
+  function removeEl(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  function nowTime() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function escapeHTML(str) {
+    return str.replace(/[&<>'"]/g, tag => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[tag]));
+  }
+
+  // Stream Token Renderer
+  function renderMarkdown(text) {
+    let s = escapeHTML(text);
+    s = s.replace(/\*\*\*(.*?)\*\*\*/g, '<strong class="font-semibold text-white"><em>$1</em></strong>');
+    s = s.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-white">$1</strong>');
+    s = s.replace(/\*(.*?)\*/g, '<em class="text-gray-200">$1</em>');
+    s = s.replace(/`([^`]+)`/g, '<code class="bg-black/30 px-1.5 py-0.5 rounded-md text-blue-300 font-mono text-xs border border-white/5">$1</code>');
+    const paras = s.split(/\n{2,}/);
+    return paras.map(p => p.trim()).filter(Boolean).map(p => `<p class="mb-3 last:mb-0">${p.replace(/\n/g, '<br>')}</p>`).join('');
+  }
 });
+                                           
