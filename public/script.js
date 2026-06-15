@@ -1,236 +1,185 @@
-/* ─── Config ──────────────────────────────────────────────────────────────── */
-const CHAT_API   = '/chat';
-const PORTFOLIO_URL = 'https://portfolio-fn9z.onrender.com';
-const CONTEXT_TTL   = 3 * 60 * 60 * 1000; // 3 hours
+document.addEventListener('DOMContentLoaded', () => {
+  const CHAT_API = '/chat';
+  const PORTFOLIO_URL = 'https://portfolio-fn9z.onrender.com';
+  
+  let history = [];
+  let streaming = false;
 
-/* ─── State ───────────────────────────────────────────────────────────────── */
-let history   = [];
-let streaming = false;
-let ctx       = '';
-let ctxTs     = 0;
+  const conv = document.getElementById('conversation');
+  const input = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const welcome = document.getElementById('welcome');
+  const prompts = document.getElementById('prompts');
 
-/* ─── DOM ─────────────────────────────────────────────────────────────────── */
-const conv      = document.getElementById('conversation');
-const input     = document.getElementById('chatInput');
-const sendBtn   = document.getElementById('sendBtn');
-const welcome   = document.getElementById('welcome');
-const prompts   = document.getElementById('prompts');
-
-/* ─── Init ────────────────────────────────────────────────────────────────── */
-warmContext();
-
-/* ─── Event listeners ─────────────────────────────────────────────────────── */
-input.addEventListener('input', autoGrow);
-
-input.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    send();
-  }
-});
-
-sendBtn.addEventListener('click', send);
-
-prompts.addEventListener('click', e => {
-  const chip = e.target.closest('.prompt-chip');
-  if (!chip) return;
-  const q = chip.dataset.q;
-  if (q) {
-    input.value = q;
-    autoGrow();
-    send();
-  }
-});
-
-/* ─── Auto-grow textarea ──────────────────────────────────────────────────── */
-function autoGrow() {
-  input.style.height = 'auto';
-  input.style.height = Math.min(input.scrollHeight, 128) + 'px';
-}
-
-/* ─── Warm portfolio context ──────────────────────────────────────────────── */
-async function warmContext() {
-  const now = Date.now();
-  if (ctx && now - ctxTs < CONTEXT_TTL) return ctx;
-  try {
-    const r = await fetch(`/proxy-portfolio?url=${encodeURIComponent(PORTFOLIO_URL)}`);
-    if (r.ok) {
-      ctx   = (await r.text()).slice(0, 4000);
-      ctxTs = now;
+  // Setup Input Interactions
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
     }
-  } catch { /* silent — server handles fallback */ }
-}
+  });
 
-/* ─── Core send ───────────────────────────────────────────────────────────── */
-async function send() {
-  const text = input.value.trim();
-  if (!text || streaming) return;
+  prompts.addEventListener('click', (e) => {
+    const chip = e.target.closest('.prompt-chip');
+    if (!chip) return;
+    input.value = chip.dataset.q;
+    send();
+  });
 
-  streaming = true;
-  setInputState(false);
+  sendBtn.addEventListener('click', send);
 
-  hideWelcome();
-  addUserMessage(text);
-  history.push({ role: 'user', content: text });
+  async function send() {
+    const text = input.value.trim();
+    if (!text || streaming) return;
 
-  input.value = '';
-  autoGrow();
+    streaming = true;
+    setInputState(false);
+    hideWelcome();
 
-  const typingEl = addTyping();
+    // 1. Render User Message
+    addUserMessage(text);
+    history.push({ role: 'user', content: text });
+    input.value = '';
 
-  try {
-    const res = await fetch(CHAT_API, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ messages: history }),
-    });
+    // 2. Render Loading State
+    const typingId = 'typing-' + Date.now();
+    addTypingIndicator(typingId);
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    try {
+      const res = await fetch(CHAT_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history }),
+      });
 
-    removeEl(typingEl);
-    const bubble = addAIBubble();
+      if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
 
-    const reader  = res.body.getReader();
-    const decoder = new TextDecoder();
-    let full = '';
+      removeEl(typingId);
+      const bubble = addAIBubble();
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      full += decoder.decode(value, { stream: true });
-      bubble.innerHTML = renderMarkdown(full);
+      // Stream Reading Logic
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullText += decoder.decode(value, { stream: true });
+        bubble.innerHTML = renderMarkdown(fullText);
+        scrollBottom();
+      }
+
+      history.push({ role: 'assistant', content: fullText });
+
+    } catch (err) {
+      removeEl(typingId);
+      const errBubble = addAIBubble();
+      errBubble.innerHTML = `<span class="text-red-400">Connection error. Please try again.</span>`;
+      history.pop(); // Remove the user message from history on failure
+    } finally {
+      streaming = false;
+      setInputState(true);
       scrollBottom();
     }
+  }
 
-    // Final clean render
-    bubble.innerHTML = renderMarkdown(full);
-    history.push({ role: 'assistant', content: full });
+  // UI Control Helpers
+  function setInputState(enabled) {
+    sendBtn.disabled = !enabled;
+    input.disabled = !enabled;
+    if (enabled) setTimeout(() => input.focus(), 10);
+  }
 
-  } catch (err) {
-    removeEl(typingEl);
-    showToast('Connection error — please try again.');
-    history.pop();
-    console.error('[chat]', err);
-  } finally {
-    streaming = false;
-    setInputState(true);
+  function hideWelcome() {
+    if (welcome && welcome.parentNode) {
+      welcome.style.opacity = '0';
+      welcome.style.transform = 'scale(0.95)';
+      setTimeout(() => welcome.remove(), 300);
+    }
+  }
+
+  function scrollBottom() {
+    requestAnimationFrame(() => {
+      conv.scrollTo({ top: conv.scrollHeight, behavior: 'smooth' });
+    });
+  }
+
+  // DOM Node Generators
+  function addUserMessage(text) {
+    const wrap = document.createElement('div');
+    wrap.className = 'flex justify-end w-full mb-4 animate-fade-in-up';
+    wrap.innerHTML = `
+      <div class="max-w-[80%] md:max-w-[70%]">
+        <div class="msg-user px-5 py-3 rounded-2xl text-sm leading-relaxed shadow-lg">${escapeHTML(text)}</div>
+        <div class="text-[10px] text-gray-500 mt-1 text-right pr-2">${nowTime()}</div>
+      </div>
+    `;
+    conv.appendChild(wrap);
     scrollBottom();
   }
-}
 
-/* ─── UI helpers ──────────────────────────────────────────────────────────── */
-function setInputState(enabled) {
-  sendBtn.disabled = !enabled;
-  input.disabled   = !enabled;
-  if (enabled) input.focus();
-}
+  function addAIBubble() {
+    const wrap = document.createElement('div');
+    wrap.className = 'flex justify-start w-full mb-4 animate-fade-in-up';
+    
+    const content = document.createElement('div');
+    content.className = 'max-w-[85%] md:max-w-[75%]';
+    
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-ai px-5 py-4 rounded-2xl text-sm leading-relaxed shadow-lg backdrop-blur-md';
+    
+    const time = document.createElement('div');
+    time.className = 'text-[10px] text-gray-500 mt-1 pl-2';
+    time.innerText = nowTime();
 
-function hideWelcome() {
-  if (!welcome) return;
-  welcome.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
-  welcome.style.opacity    = '0';
-  welcome.style.transform  = 'translateY(-6px)';
-  setTimeout(() => welcome.remove(), 260);
-}
+    content.appendChild(bubble);
+    content.appendChild(time);
+    wrap.appendChild(content);
+    conv.appendChild(wrap);
+    
+    scrollBottom();
+    return bubble; 
+  }
 
-function nowTime() {
-  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
+  function addTypingIndicator(id) {
+    const wrap = document.createElement('div');
+    wrap.id = id;
+    wrap.className = 'flex justify-start w-full mb-4 animate-fade-in-up';
+    wrap.innerHTML = `
+      <div class="msg-ai px-5 py-4 rounded-2xl flex items-center gap-1.5 shadow-lg">
+        <div class="w-2 h-2 rounded-full bg-blue-400 typing-dot"></div>
+        <div class="w-2 h-2 rounded-full bg-blue-400 typing-dot"></div>
+        <div class="w-2 h-2 rounded-full bg-blue-400 typing-dot"></div>
+      </div>
+    `;
+    conv.appendChild(wrap);
+    scrollBottom();
+  }
 
-function addUserMessage(text) {
-  const group = el('div', 'msg-group user');
+  function removeEl(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
 
-  const sender = el('span', 'msg-sender');
-  sender.textContent = 'You';
+  function nowTime() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
 
-  const bubble = el('div', 'msg-bubble');
-  bubble.textContent = text;
+  function escapeHTML(str) {
+    return str.replace(/[&<>'"]/g, tag => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[tag]));
+  }
 
-  const time = el('div', 'msg-time');
-  time.textContent = nowTime();
-
-  group.append(sender, bubble, time);
-  conv.appendChild(group);
-  scrollBottom();
-  return bubble;
-}
-
-function addTyping() {
-  const group = el('div', 'typing-group');
-  group.id = 'typing';
-  group.innerHTML = `<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>`;
-  conv.appendChild(group);
-  scrollBottom();
-  return group;
-}
-
-function addAIBubble() {
-  const group = el('div', 'msg-group ai');
-
-  const sender = el('span', 'msg-sender');
-  sender.textContent = 'Sri Charan AI';
-
-  const bubble = el('div', 'msg-bubble');
-
-  const time = el('div', 'msg-time');
-  time.textContent = nowTime();
-
-  group.append(sender, bubble, time);
-  conv.appendChild(group);
-  scrollBottom();
-  return bubble;
-}
-
-function removeEl(node) {
-  node?.remove();
-}
-
-function scrollBottom() {
-  requestAnimationFrame(() => {
-    conv.scrollTo({ top: conv.scrollHeight, behavior: 'smooth' });
-  });
-}
-
-function showToast(msg, ms = 4200) {
-  const t = el('div', 'toast');
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => {
-    t.style.opacity   = '0';
-    t.style.transform = 'translateX(-50%) translateY(6px)';
-    t.style.transition = 'opacity 0.25s, transform 0.25s';
-    setTimeout(() => t.remove(), 260);
-  }, ms);
-}
-
-/* ─── Markdown renderer (minimal subset) ─────────────────────────────────── */
-function renderMarkdown(text) {
-  // Escape raw HTML
-  let s = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
-  // Bold and italic
-  s = s.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
-  s = s.replace(/\*\*(.*?)\*\*/g,     '<strong>$1</strong>');
-  s = s.replace(/\*(.*?)\*/g,         '<em>$1</em>');
-
-  // Inline code
-  s = s.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:4px;font-size:12.5px;font-family:ui-monospace,monospace;">$1</code>');
-
-  // Paragraphs
-  const paras = s.split(/\n{2,}/);
-  return paras
-    .map(p => p.trim())
-    .filter(Boolean)
-    .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
-    .join('');
-}
-
-/* ─── Utility ─────────────────────────────────────────────────────────────── */
-function el(tag, className) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  return node;
-    }
+  // Minimal Markdown Parser for Stream Text
+  function renderMarkdown(text) {
+    let s = escapeHTML(text);
+    s = s.replace(/\*\*\*(.*?)\*\*\*/g, '<strong class="font-semibold text-white"><em>$1</em></strong>');
+    s = s.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-white">$1</strong>');
+    s = s.replace(/\*(.*?)\*/g, '<em class="text-gray-200">$1</em>');
+    s = s.replace(/`([^`]+)`/g, '<code class="bg-black/30 px-1.5 py-0.5 rounded-md text-blue-300 font-mono text-xs border border-white/5">$1</code>');
+    const paras = s.split(/\n{2,}/);
+    return paras.map(p => p.trim()).filter(Boolean).map(p => `<p class="mb-3 last:mb-0">${p.replace(/\n/g, '<br>')}</p>`).join('');
+  }
+});
