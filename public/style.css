@@ -1,62 +1,96 @@
-/* Base Resets & Hide Scrollbar */
-::-webkit-scrollbar { width: 0px; background: transparent; }
-html { scroll-behavior: smooth; }
-
-/* 3D Perspective Utilities */
-.perspective-1000 {
-  perspective: 1000px;
-}
-.transform-style-3d {
-  transform-style: preserve-3d;
-}
-.translate-z-50 {
-  transform: translateZ(50px);
-}
-.translate-z-40 {
-  transform: translateZ(40px);
-}
-.translate-z-30 {
-  transform: translateZ(30px);
+body { 
+  background-color: #000000; 
+  color: white; 
+  overflow: hidden; 
+  height: 100dvh; 
 }
 
-/* Stunning Typography Gradient */
-.text-gradient {
-  background: linear-gradient(180deg, #FFFFFF 0%, rgba(255, 255, 255, 0.7) 50%, rgba(255, 255, 255, 0.2) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-}
-
-/* Premium Glassmorphism */
-.glass-nav {
-  background: rgba(3, 3, 5, 0.4);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.glass-nav.scrolled {
-  background: rgba(3, 3, 5, 0.8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 1rem;
-  padding-bottom: 1rem;
-}
-
-.glass-card {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
+/* Glassmorphism Panel */
+.glass-panel {
+  background: linear-gradient(145deg, rgba(30, 30, 35, 0.4) 0%, rgba(15, 15, 18, 0.6) 100%);
+  backdrop-filter: blur(48px) saturate(200%);
+  -webkit-backdrop-filter: blur(48px) saturate(200%);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: transform 0.1s ease-out, border-color 0.3s ease;
-  transform-style: preserve-3d;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.glass-card:hover {
-  border-color: rgba(59, 130, 246, 0.3);
+/* Ambient Background Lights */
+.ambient-orb {
+  position: absolute; 
+  border-radius: 50%; 
+  filter: blur(120px); 
+  opacity: 0.4; 
+  pointer-events: none;
+}
+.orb-primary { 
+  background: #1D4ED8; 
+  width: 600px; 
+  height: 600px; 
+  top: -10%; 
+  left: -10%; 
+}
+.orb-secondary { 
+  background: #4C1D95; 
+  width: 500px; 
+  height: 500px; 
+  bottom: -20%; 
+  right: -10%; 
 }
 
-/* Card internal 3D pop effect */
-.glass-card > * {
-  transform: translateZ(30px);
-  }
+/* Custom Scrollbar */
+::-webkit-scrollbar { 
+  width: 4px; 
+}
+::-webkit-scrollbar-track { 
+  background: transparent; 
+}
+::-webkit-scrollbar-thumb { 
+  background: rgba(255, 255, 255, 0.1); 
+  border-radius: 10px; 
+}
+::-webkit-scrollbar-thumb:hover { 
+  background: rgba(255, 255, 255, 0.2); 
+}
+
+/* Dynamic Textarea Auto-height resizing */
+textarea { 
+  field-sizing: content; 
+} 
+
+/* Title Typography Gradients */
+.text-gradient {
+  background: linear-gradient(135deg, #FFFFFF 0%, rgba(255, 255, 255, 0.5) 100%);
+  -webkit-background-clip: text; 
+  -webkit-text-fill-color: transparent;
+}
+
+/* Chat Message Bubbles */
+.msg-user { 
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); 
+  color: white; 
+  border-bottom-right-radius: 4px; 
+}
+.msg-ai { 
+  background: rgba(255, 255, 255, 0.05); 
+  border: 1px solid rgba(255, 255, 255, 0.05); 
+  color: #E2E8F0; 
+  border-bottom-left-radius: 4px; 
+}
+
+/* Loading/Typing States */
+.typing-dot { 
+  animation: typingBounce 1.4s infinite ease-in-out both; 
+}
+.typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typingBounce { 
+  0%, 80%, 100% { 
+    transform: scale(0); 
+    opacity: 0.3; 
+  } 
+  40% { 
+    transform: scale(1); 
+    opacity: 1; 
+  } 
+}
