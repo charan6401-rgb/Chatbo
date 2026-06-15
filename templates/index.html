@@ -1,427 +1,342 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Sri Charan · AI Chat</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg1: #040d1a;
-    --bg2: #071428;
-    --cyan: #00e5ff;
-    --teal: #00bcd4;
-    --red:  #ff3c6e;
-    --glass-bg: rgba(255,255,255,0.04);
-    --glass-border: rgba(0,229,255,0.18);
-    --glass-blur: blur(18px);
-    --text: #e8f4f8;
-    --muted: rgba(232,244,248,0.45);
-    --font-head: 'Syne', sans-serif;
-    --font-body: 'Space Grotesk', sans-serif;
-    --radius: 20px;
-    --radius-sm: 12px;
-    --bubble-user: rgba(0,229,255,0.12);
-    --bubble-bot: rgba(255,255,255,0.05);
-  }
-
-  html, body {
-    height: 100%;
-    font-family: var(--font-body);
-    background: var(--bg1);
-    color: var(--text);
-    overflow: hidden;
-  }
-
-  .bg-canvas {
-    position: fixed; inset: 0; z-index: 0;
-    background:
-      radial-gradient(ellipse 60% 50% at 15% 20%, rgba(0,188,212,0.18) 0%, transparent 65%),
-      radial-gradient(ellipse 50% 60% at 85% 75%, rgba(255,60,110,0.14) 0%, transparent 65%),
-      radial-gradient(ellipse 40% 40% at 50% 50%, rgba(0,229,255,0.07) 0%, transparent 70%),
-      linear-gradient(160deg, #040d1a 0%, #071428 100%);
-  }
-  .bg-canvas::after {
-    content:'';
-    position:absolute; inset:0;
-    background-image:
-      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,229,255,0.04) 40px),
-      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,229,255,0.04) 40px);
-  }
-
-  .app {
-    position: relative; z-index: 1;
-    display: flex; flex-direction: column;
-    height: 100dvh;
-    max-width: 430px;
-    margin: 0 auto;
-  }
-
-  .header {
-    display: flex; align-items: center; gap: 12px;
-    padding: 18px 20px 14px;
-    background: rgba(4,13,26,0.55);
-    backdrop-filter: blur(24px) saturate(160%);
-    border-bottom: 1px solid var(--glass-border);
-    flex-shrink: 0;
-  }
-  .avatar {
-    width: 42px; height: 42px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--cyan), var(--red));
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--font-head); font-weight: 800; font-size: 16px;
-    color: #fff; flex-shrink: 0;
-    box-shadow: 0 0 16px rgba(0,229,255,0.35);
-  }
-  .header-info { flex: 1; }
-  .header-name {
-    font-family: var(--font-head); font-weight: 700; font-size: 17px;
-    letter-spacing: 0.02em; color: var(--text);
-  }
-  .header-sub {
-    font-size: 11px; color: var(--cyan); letter-spacing: 0.08em;
-    text-transform: uppercase; margin-top: 2px;
-  }
-  .status-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: #00e676;
-    box-shadow: 0 0 8px #00e676;
-    flex-shrink: 0;
-    animation: pulse 2s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%,100% { opacity:1; transform:scale(1); }
-    50% { opacity:0.5; transform:scale(0.8); }
-  }
-
-  .prompts-strip {
-    display: flex; gap: 8px;
-    padding: 12px 16px;
-    overflow-x: auto; flex-shrink: 0;
-    scrollbar-width: none;
-  }
-  .prompts-strip::-webkit-scrollbar { display: none; }
-  .prompt-chip {
-    white-space: nowrap;
-    padding: 7px 14px;
-    border-radius: 50px;
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    backdrop-filter: var(--glass-blur);
-    font-size: 12px; color: var(--cyan);
-    cursor: pointer; transition: all 0.22s;
-    flex-shrink: 0;
-    font-family: var(--font-body); font-weight: 500;
-  }
-  .prompt-chip:hover, .prompt-chip:active {
-    background: rgba(0,229,255,0.12);
-    border-color: var(--cyan);
-    box-shadow: 0 0 14px rgba(0,229,255,0.2);
-    transform: translateY(-1px);
-  }
-
-  .messages {
-    flex: 1; overflow-y: auto;
-    padding: 8px 16px 12px;
-    display: flex; flex-direction: column; gap: 14px;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0,229,255,0.15) transparent;
-  }
-  .messages::-webkit-scrollbar { width: 4px; }
-  .messages::-webkit-scrollbar-thumb { background: rgba(0,229,255,0.15); border-radius: 4px; }
-
-  .msg { display: flex; flex-direction: column; max-width: 85%; }
-  .msg.user { align-self: flex-end; align-items: flex-end; }
-  .msg.bot  { align-self: flex-start; align-items: flex-start; }
-
-  .bubble {
-    padding: 12px 16px;
-    border-radius: var(--radius);
-    line-height: 1.6; font-size: 14px;
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid transparent;
-    animation: popIn 0.28s cubic-bezier(0.34,1.56,0.64,1);
-  }
-  @keyframes popIn {
-    from { opacity:0; transform:scale(0.88) translateY(6px); }
-    to   { opacity:1; transform:scale(1) translateY(0); }
-  }
-  .msg.user .bubble {
-    background: var(--bubble-user);
-    border-color: rgba(0,229,255,0.22);
-    border-bottom-right-radius: 6px;
-    color: var(--text);
-  }
-  .msg.bot .bubble {
-    background: var(--bubble-bot);
-    border-color: rgba(255,255,255,0.08);
-    border-bottom-left-radius: 6px;
-    color: var(--text);
-  }
-  .msg-time {
-    font-size: 10px; color: var(--muted);
-    margin-top: 4px; padding: 0 4px;
-  }
-
-  .typing-bubble {
-    background: var(--bubble-bot);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-bottom-left-radius: 6px;
-    border-radius: var(--radius);
-    padding: 14px 18px;
-    display: none; align-items: center; gap: 5px;
-    backdrop-filter: var(--glass-blur);
-  }
-  .typing-bubble.visible { display: flex; }
-  .dot { width:7px; height:7px; border-radius:50%; background:var(--cyan); opacity:0.5; }
-  .dot:nth-child(1) { animation: blink 1.2s 0s infinite; }
-  .dot:nth-child(2) { animation: blink 1.2s 0.2s infinite; }
-  .dot:nth-child(3) { animation: blink 1.2s 0.4s infinite; }
-  @keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
-
-  .input-area {
-    flex-shrink: 0;
-    padding: 12px 16px 20px;
-    background: rgba(4,13,26,0.6);
-    backdrop-filter: blur(24px) saturate(160%);
-    border-top: 1px solid var(--glass-border);
-  }
-  .input-wrap {
-    display: flex; align-items: flex-end; gap: 10px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius);
-    padding: 10px 10px 10px 16px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    backdrop-filter: blur(12px);
-  }
-  .input-wrap:focus-within {
-    border-color: rgba(0,229,255,0.45);
-    box-shadow: 0 0 20px rgba(0,229,255,0.12);
-  }
-  #msgInput {
-    flex: 1; background: transparent; border: none; outline: none;
-    color: var(--text); font-family: var(--font-body); font-size: 14px;
-    resize: none; line-height: 1.5;
-    max-height: 100px; min-height: 22px;
-    overflow-y: auto;
-  }
-  #msgInput::placeholder { color: var(--muted); }
-  .send-btn {
-    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
-    background: linear-gradient(135deg, var(--cyan), var(--teal));
-    border: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: transform 0.18s, box-shadow 0.18s;
-    box-shadow: 0 0 16px rgba(0,229,255,0.25);
-  }
-  .send-btn:hover { transform: scale(1.08); box-shadow: 0 0 22px rgba(0,229,255,0.4); }
-  .send-btn:active { transform: scale(0.95); }
-  .send-btn svg { width:16px; height:16px; fill:#040d1a; }
-
-  .welcome-card {
-    margin: 16px 0 4px;
-    padding: 18px 20px;
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius);
-    backdrop-filter: var(--glass-blur);
-    font-size: 13.5px; line-height: 1.7; color: var(--muted);
-  }
-  .welcome-card strong { color: var(--cyan); font-weight: 600; }
-  .welcome-card .tag {
-    display: inline-block; padding: 2px 10px;
-    background: rgba(0,229,255,0.1); border: 1px solid rgba(0,229,255,0.2);
-    border-radius: 50px; font-size: 11px; color: var(--cyan);
-    margin: 2px 3px 0 0; letter-spacing: 0.05em;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sri Charan · AI</title>
+  <meta name="description" content="Sri Charan's AI assistant — built to showcase projects, ideas, and the journey of a future software engineer." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<div class="bg-canvas"></div>
+  <!-- ── LANDING ─────────────────────────────────────────────────────── -->
+  <section id="landing" class="landing" aria-label="Landing page">
 
-<div class="app">
+    <!-- Three.js canvas -->
+    <canvas id="three-canvas" aria-hidden="true"></canvas>
 
-  <header class="header">
-    <div class="avatar">SC</div>
-    <div class="header-info">
-      <div class="header-name">Sri Charan</div>
-      <div class="header-sub">AI · Portfolio Assistant</div>
+    <!-- Ambient overlays -->
+    <div class="ambient-top"    aria-hidden="true"></div>
+    <div class="ambient-bottom" aria-hidden="true"></div>
+    <div class="grain"          aria-hidden="true"></div>
+
+    <!-- Nav -->
+    <nav class="nav" role="navigation" aria-label="Primary navigation">
+      <div class="nav-logo">
+        <span class="nav-dot" aria-hidden="true"></span>
+        SC
+      </div>
+      <div class="nav-links">
+        <a href="#projects-section" class="nav-link" aria-label="View projects">Projects</a>
+        <a href="https://github.com/charan6401-rgb" target="_blank" rel="noopener noreferrer" class="nav-link" aria-label="GitHub profile">GitHub</a>
+        <a href="https://portfolio-fn9z.onrender.com" target="_blank" rel="noopener noreferrer" class="nav-link nav-link--portfolio" aria-label="View portfolio">Portfolio ↗</a>
+      </div>
+    </nav>
+
+    <!-- Hero -->
+    <div class="hero" role="main">
+      <div class="hero-eyebrow" aria-label="Status indicator">
+        <span class="pulse-ring" aria-hidden="true"></span>
+        <span class="eyebrow-text">Live AI · Powered by OpenRouter</span>
+      </div>
+
+      <h1 class="hero-title">
+        <span class="title-line title-line--1">Meet</span>
+        <span class="title-line title-line--2">Sri Charan's<em class="title-accent"> AI</em></span>
+      </h1>
+
+      <p class="hero-sub">
+        An AI assistant built to showcase projects, ideas, and the&nbsp;journey
+        of&nbsp;a&nbsp;future software engineer.
+      </p>
+
+      <div class="hero-actions">
+        <button
+          class="btn btn--primary"
+          id="openChatBtn"
+          aria-label="Open chat interface"
+        >
+          <span class="btn-glow" aria-hidden="true"></span>
+          <span class="btn-label">Start Chatting</span>
+          <span class="btn-icon" aria-hidden="true">→</span>
+        </button>
+        <a
+          href="#projects-section"
+          class="btn btn--ghost"
+          aria-label="Scroll to projects"
+        >
+          View Projects
+        </a>
+      </div>
+
+      <div class="hero-scroll-hint" aria-hidden="true">
+        <span class="scroll-line"></span>
+        <span class="scroll-label">Scroll</span>
+      </div>
     </div>
-    <div class="status-dot"></div>
-  </header>
 
-  <div class="prompts-strip" id="promptsStrip">
-    <button class="prompt-chip" onclick="sendPrompt('Who is Sri Charan?')">👤 Who is Sri Charan?</button>
-    <button class="prompt-chip" onclick="sendPrompt('Tell me about his projects')">🚀 Projects</button>
-    <button class="prompt-chip" onclick="sendPrompt('What are his skills?')">⚡ Skills</button>
-    <button class="prompt-chip" onclick="sendPrompt('What is his educational background?')">🎓 Education</button>
-    <button class="prompt-chip" onclick="sendPrompt('How can I contact Sri Charan?')">📬 Contact</button>
-    <button class="prompt-chip" onclick="sendPrompt('What are his achievements?')">🏆 Achievements</button>
-  </div>
-
-  <div class="messages" id="messages">
-    <div class="welcome-card">
-      Hey there 👋 I'm <strong>Sri Charan's AI assistant</strong>.<br/>
-      Ask me anything — his work, projects, skills, or background.<br/>
-      <br/>
-      <span class="tag">Full-Stack</span>
-      <span class="tag">AI/ML</span>
-      <span class="tag">Cloud</span>
-      <span class="tag">Open Source</span>
+    <!-- Stats strip -->
+    <div class="stats-strip" role="list" aria-label="Key facts">
+      <div class="stat" role="listitem">
+        <span class="stat-num">2</span>
+        <span class="stat-label">Live Projects</span>
+      </div>
+      <div class="stat-divider" aria-hidden="true"></div>
+      <div class="stat" role="listitem">
+        <span class="stat-num">5+</span>
+        <span class="stat-label">Languages</span>
+      </div>
+      <div class="stat-divider" aria-hidden="true"></div>
+      <div class="stat" role="listitem">
+        <span class="stat-num">∞</span>
+        <span class="stat-label">Drive</span>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div style="padding: 0 16px 8px; flex-shrink:0;">
-    <div class="typing-bubble" id="typingBubble">
-      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  <!-- ── PROJECTS SECTION ─────────────────────────────────────────────── -->
+  <section id="projects-section" class="projects-section" aria-label="Projects showcase">
+    <div class="section-inner">
+      <div class="section-header">
+        <span class="section-eyebrow">Built &amp; Deployed</span>
+        <h2 class="section-title">Projects</h2>
+        <p class="section-desc">Real products, live on the internet — not tutorial clones.</p>
+      </div>
+
+      <div class="projects-grid" role="list">
+
+        <article class="project-card project-card--featured" role="listitem" tabindex="0"
+          data-tilt aria-label="AI Chatbot project">
+          <div class="card-glow" aria-hidden="true"></div>
+          <div class="card-inner">
+            <div class="card-badge">Live</div>
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            <h3 class="card-title">Sri Charan's AI Chatbot</h3>
+            <p class="card-desc">A fully deployed AI-powered chatbot. Live on the internet, not a tutorial project. Multi-model fallback, streaming responses.</p>
+            <div class="card-tags">
+              <span class="tag">Python</span>
+              <span class="tag">Flask</span>
+              <span class="tag">OpenRouter</span>
+              <span class="tag">Render</span>
+            </div>
+            <a href="https://sri-charans-ai.onrender.com" target="_blank" rel="noopener noreferrer"
+               class="card-link" aria-label="Open AI Chatbot">Visit ↗</a>
+          </div>
+        </article>
+
+        <article class="project-card" role="listitem" tabindex="0"
+          data-tilt aria-label="Portfolio Website project">
+          <div class="card-glow" aria-hidden="true"></div>
+          <div class="card-inner">
+            <div class="card-badge">Live</div>
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M3 9h18" stroke="currentColor" stroke-width="1.5"/></svg>
+            </div>
+            <h3 class="card-title">Portfolio Website</h3>
+            <p class="card-desc">Hand-coded from scratch. Zero templates. Fully responsive with premium dark aesthetics and cinematic animations.</p>
+            <div class="card-tags">
+              <span class="tag">HTML</span>
+              <span class="tag">CSS</span>
+              <span class="tag">JavaScript</span>
+            </div>
+            <a href="https://portfolio-fn9z.onrender.com" target="_blank" rel="noopener noreferrer"
+               class="card-link" aria-label="Open Portfolio Website">Visit ↗</a>
+          </div>
+        </article>
+
+        <article class="project-card project-card--upcoming" role="listitem" tabindex="0"
+          data-tilt aria-label="DSA Visualizer - upcoming project">
+          <div class="card-glow" aria-hidden="true"></div>
+          <div class="card-inner">
+            <div class="card-badge card-badge--soon">Soon</div>
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M3 3v18h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M7 14l4-4 4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <h3 class="card-title">DSA Visualizer</h3>
+            <p class="card-desc">Interactive data structures and algorithms visualizer. Watch sorting, traversals, and pathfinding in real time.</p>
+            <div class="card-tags">
+              <span class="tag">C++</span>
+              <span class="tag">Python</span>
+              <span class="tag">Canvas API</span>
+            </div>
+            <span class="card-link card-link--disabled" aria-label="Coming soon">In Progress</span>
+          </div>
+        </article>
+
+        <article class="project-card project-card--upcoming" role="listitem" tabindex="0"
+          data-tilt aria-label="Future project">
+          <div class="card-glow" aria-hidden="true"></div>
+          <div class="card-inner">
+            <div class="card-badge card-badge--soon">Next</div>
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M12 2v4M12 18v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M2 12h4M18 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            <h3 class="card-title">Python Automation Suite</h3>
+            <p class="card-desc">A collection of Python automation tools — file organizers, scrapers, and productivity scripts.</p>
+            <div class="card-tags">
+              <span class="tag">Python</span>
+              <span class="tag">Automation</span>
+            </div>
+            <span class="card-link card-link--disabled" aria-label="Coming soon">Planned</span>
+          </div>
+        </article>
+
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div class="input-area">
-    <div class="input-wrap">
-      <textarea id="msgInput" rows="1" placeholder="Ask about Sri Charan…"></textarea>
-      <button class="send-btn" id="sendBtn" onclick="handleSend()">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-        </svg>
-      </button>
+  <!-- ── ABOUT STRIP ──────────────────────────────────────────────────── -->
+  <section class="about-strip" aria-label="About Sri Charan">
+    <div class="section-inner about-inner">
+      <div class="about-quote">
+        <span class="quote-mark" aria-hidden="true">"</span>
+        <blockquote>Every expert was once a beginner who simply refused to stop.</blockquote>
+        <cite>— Sri Charan</cite>
+      </div>
+      <div class="about-cta">
+        <p>First-year student. Building real things. One working build at a time.</p>
+        <button class="btn btn--primary" id="openChatBtn2" aria-label="Chat with Sri Charan's AI">
+          <span class="btn-glow" aria-hidden="true"></span>
+          <span class="btn-label">Ask the AI</span>
+          <span class="btn-icon" aria-hidden="true">→</span>
+        </button>
+      </div>
     </div>
-  </div>
+  </section>
 
-</div>
+  <!-- ── CHAT OVERLAY ─────────────────────────────────────────────────── -->
+  <div
+    id="chatOverlay"
+    class="chat-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Chat with Sri Charan's AI"
+    aria-hidden="true"
+  >
+    <div class="chat-backdrop" id="chatBackdrop" aria-hidden="true"></div>
 
-<script>
-  // ── Point this to your Flask backend ──────────────────────────────────────
-  // If Flask and this HTML are on the same server/domain, use a relative path:
-  const BACKEND_URL = "/chat";
-  // If running locally (Flask on 5000, HTML opened separately), use:
-  // const BACKEND_URL = "http://localhost:5000/chat";
-  // After deploying to Render, use:
-  // const BACKEND_URL = "https://your-app-name.onrender.com/chat";
-  // ──────────────────────────────────────────────────────────────────────────
+    <div class="chat-shell">
 
-  const messagesEl = document.getElementById('messages');
-  const inputEl    = document.getElementById('msgInput');
-  const typingEl   = document.getElementById('typingBubble');
-  const sendBtn    = document.getElementById('sendBtn');
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar" aria-label="Navigation sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo">
+            <span class="sidebar-dot" aria-hidden="true"></span>
+            Sri Charan
+          </div>
+          <button class="sidebar-close" id="sidebarClose" aria-label="Close sidebar">✕</button>
+        </div>
 
-  let conversationHistory = [];
-  let isStreaming = false;
+        <nav class="sidebar-nav" aria-label="Chat navigation">
+          <button class="sidebar-btn sidebar-btn--active" data-action="newchat" aria-label="New chat">
+            <span class="sbtn-icon" aria-hidden="true">✦</span> New Chat
+          </button>
+        </nav>
 
-  function getTime() {
-    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }
+        <div class="sidebar-section">
+          <span class="sidebar-section-title">Quick Ask</span>
+          <button class="sidebar-chip" data-prompt="Who is Sri Charan?">👤 Who is he?</button>
+          <button class="sidebar-chip" data-prompt="Tell me about his projects">🚀 Projects</button>
+          <button class="sidebar-chip" data-prompt="What are his skills?">⚡ Skills</button>
+          <button class="sidebar-chip" data-prompt="What is his educational background?">🎓 Education</button>
+          <button class="sidebar-chip" data-prompt="What are his achievements?">🏆 Achievements</button>
+          <button class="sidebar-chip" data-prompt="How can I contact Sri Charan?">📬 Contact</button>
+        </div>
 
-  function appendMessage(role, text) {
-    const wrap   = document.createElement('div');
-    wrap.className = `msg ${role}`;
+        <div class="sidebar-links">
+          <a href="https://github.com/charan6401-rgb" target="_blank" rel="noopener noreferrer" class="sidebar-external" aria-label="GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            GitHub
+          </a>
+          <a href="https://portfolio-fn9z.onrender.com" target="_blank" rel="noopener noreferrer" class="sidebar-external" aria-label="Portfolio">
+            <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4M14 4h6m0 0v6m0-6L10 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Portfolio
+          </a>
+          <a href="mailto:charan6401@gmail.com" class="sidebar-external" aria-label="Email Sri Charan">
+            <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M3 8l7.89 5.26a2 2 0 0 0 2.22 0L21 8M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Email
+          </a>
+        </div>
+      </aside>
 
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble';
-    bubble.textContent = text;
+      <!-- Main chat panel -->
+      <div class="chat-main" role="main">
 
-    const time = document.createElement('div');
-    time.className = 'msg-time';
-    time.textContent = getTime();
+        <!-- Chat topbar -->
+        <header class="chat-topbar">
+          <button class="topbar-menu" id="sidebarToggle" aria-label="Toggle sidebar" aria-expanded="false" aria-controls="sidebar">
+            <span></span><span></span><span></span>
+          </button>
+          <div class="topbar-identity">
+            <div class="topbar-avatar" aria-hidden="true">SC</div>
+            <div>
+              <div class="topbar-name">Sri Charan's AI</div>
+              <div class="topbar-status">
+                <span class="status-pulse" aria-hidden="true"></span>
+                Online
+              </div>
+            </div>
+          </div>
+          <div class="topbar-actions">
+            <button class="topbar-btn" id="clearChatBtn" title="Clear chat" aria-label="Clear chat history">
+              <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="topbar-btn topbar-btn--close" id="closeChat" title="Close chat" aria-label="Close chat">
+              <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+        </header>
 
-    wrap.appendChild(bubble);
-    wrap.appendChild(time);
-    messagesEl.appendChild(wrap);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
+        <!-- Messages -->
+        <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-label="Chat messages">
+          <!-- Welcome message injected by JS -->
+        </div>
 
-    return { wrap, bubble, time };
-  }
+        <!-- Typing indicator -->
+        <div class="typing-wrap" id="typingWrap" aria-hidden="true">
+          <div class="typing-avatar" aria-hidden="true">SC</div>
+          <div class="typing-bubble">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+        </div>
 
-  function showTyping(show) {
-    typingEl.classList.toggle('visible', show);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
+        <!-- Input -->
+        <div class="chat-input-area">
+          <div class="input-row">
+            <textarea
+              id="chatInput"
+              class="chat-textarea"
+              placeholder="Ask me anything about Sri Charan…"
+              rows="1"
+              aria-label="Message input"
+              aria-multiline="true"
+            ></textarea>
+            <button
+              class="send-btn"
+              id="sendBtn"
+              aria-label="Send message"
+              disabled
+            >
+              <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <p class="input-hint">Shift+Enter for new line · Enter to send</p>
+        </div>
 
-  function autoResize() {
-    inputEl.style.height = 'auto';
-    inputEl.style.height = Math.min(inputEl.scrollHeight, 100) + 'px';
-  }
-  inputEl.addEventListener('input', autoResize);
-  inputEl.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
-  });
+      </div><!-- /chat-main -->
+    </div><!-- /chat-shell -->
+  </div><!-- /chatOverlay -->
 
-  async function sendPrompt(text) {
-    inputEl.value = text;
-    autoResize();
-    await handleSend();
-  }
-
-  async function handleSend() {
-    if (isStreaming) return;
-    const text = inputEl.value.trim();
-    if (!text) return;
-
-    inputEl.value = '';
-    autoResize();
-    isStreaming = true;
-    sendBtn.style.opacity = '0.5';
-
-    // Show user message
-    appendMessage('user', text);
-    conversationHistory.push({ role: 'user', content: text });
-
-    showTyping(true);
-
-    let botNode  = null;
-    let fullReply = '';
-
-    try {
-      // ── Call YOUR Flask /chat endpoint ──────────────────────────────────
-      const response = await fetch(BACKEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: conversationHistory })
-        // The backend prepends the system prompt automatically,
-        // so we only send the conversation history here.
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-
-      showTyping(false);
-      botNode = appendMessage('bot', '');
-
-      // ── Read the streamed plain-text response ───────────────────────────
-      const reader  = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        fullReply += chunk;
-        botNode.bubble.textContent = fullReply;
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-      }
-      // ────────────────────────────────────────────────────────────────────
-
-      botNode.time.textContent = getTime();
-      conversationHistory.push({ role: 'assistant', content: fullReply });
-
-    } catch (err) {
-      showTyping(false);
-      if (!botNode) botNode = appendMessage('bot', '');
-      botNode.bubble.textContent = '⚠️ Could not reach the server. Please try again.';
-      botNode.bubble.style.color = '#ff6b8a';
-      console.error('Chat error:', err);
-    } finally {
-      isStreaming = false;
-      sendBtn.style.opacity = '1';
-      inputEl.focus();
-    }
-  }
-</script>
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="script.js"></script>
 </body>
-</html>
+               </html>
+ 
