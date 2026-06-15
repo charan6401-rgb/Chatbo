@@ -4,7 +4,10 @@ import json
 import os
 import re
 
-app = Flask(__name__)
+app = Flask(__name__, 
+            template_folder='public',
+            static_folder='public',
+            static_url_path='')
 
 API_KEY = os.environ.get("OPENROUTER_API_KEY", "your_api_key_here")
 URL = "https://openrouter.ai/api/v1/chat/completions"
