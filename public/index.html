@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Sri Charan · AI Portfolio Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Ambient background -->
+  <div class="ambient" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+  </div>
+  <div class="grid-overlay" aria-hidden="true"></div>
+
+  <!-- Main layout -->
+  <div class="layout">
+
+    <!-- Glass panel -->
+    <div class="panel">
+
+      <!-- Panel header -->
+      <header class="panel-header">
+        <div class="panel-header-left">
+          <div class="avatar-mark" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="10" cy="10" r="3" fill="white" opacity="0.95"/>
+              <circle cx="10" cy="3.5" r="1.4" fill="white" opacity="0.55"/>
+              <circle cx="10" cy="16.5" r="1.4" fill="white" opacity="0.55"/>
+              <circle cx="3.5" cy="10" r="1.4" fill="white" opacity="0.55"/>
+              <circle cx="16.5" cy="10" r="1.4" fill="white" opacity="0.55"/>
+              <line x1="10" y1="6.8" x2="10" y2="4.9" stroke="white" stroke-width="0.7" opacity="0.35"/>
+              <line x1="10" y1="13.2" x2="10" y2="15.1" stroke="white" stroke-width="0.7" opacity="0.35"/>
+              <line x1="6.8" y1="10" x2="4.9" y2="10" stroke="white" stroke-width="0.7" opacity="0.35"/>
+              <line x1="13.2" y1="10" x2="15.1" y2="10" stroke="white" stroke-width="0.7" opacity="0.35"/>
+            </svg>
+          </div>
+          <div class="panel-header-info">
+            <span class="panel-title">Sri Charan</span>
+            <span class="panel-subtitle">AI Portfolio Assistant</span>
+          </div>
+        </div>
+        <div class="status-badge">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span>Online</span>
+        </div>
+      </header>
+
+      <!-- Conversation -->
+      <main class="conversation" id="conversation" role="log" aria-live="polite" aria-label="Chat conversation">
+
+        <!-- Welcome state -->
+        <div class="welcome" id="welcome">
+          <div class="welcome-icon" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="14" cy="14" r="4.5" fill="white" opacity="0.9"/>
+              <circle cx="14" cy="4" r="2" fill="white" opacity="0.45"/>
+              <circle cx="14" cy="24" r="2" fill="white" opacity="0.45"/>
+              <circle cx="4" cy="14" r="2" fill="white" opacity="0.45"/>
+              <circle cx="24" cy="14" r="2" fill="white" opacity="0.45"/>
+              <line x1="14" y1="9" x2="14" y2="6" stroke="white" stroke-width="1" opacity="0.3"/>
+              <line x1="14" y1="19" x2="14" y2="22" stroke="white" stroke-width="1" opacity="0.3"/>
+              <line x1="9" y1="14" x2="6" y2="14" stroke="white" stroke-width="1" opacity="0.3"/>
+              <line x1="19" y1="14" x2="22" y2="14" stroke="white" stroke-width="1" opacity="0.3"/>
+            </svg>
+          </div>
+          <h1 class="welcome-name">Sri Charan</h1>
+          <p class="welcome-desc">Ask me anything about his work, projects, skills, and journey as a developer.</p>
+
+          <div class="prompts" id="prompts" role="list" aria-label="Suggested questions">
+            <button class="prompt-chip" data-q="Tell me about Sri Charan" role="listitem">Who is Sri Charan?</button>
+            <button class="prompt-chip" data-q="What projects has he built?" role="listitem">What has he built?</button>
+            <button class="prompt-chip" data-q="What technologies does he know?" role="listitem">Tech stack?</button>
+            <button class="prompt-chip" data-q="Explain the Mates project" role="listitem">Mates project</button>
+            <button class="prompt-chip" data-q="What are his achievements?" role="listitem">Achievements</button>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- Input -->
+      <footer class="input-shell">
+        <div class="input-wrap" id="inputWrap">
+          <textarea
+            id="chatInput"
+            class="chat-input"
+            placeholder="Ask about Sri Charan…"
+            rows="1"
+            aria-label="Type your message"
+            autocomplete="off"
+            spellcheck="true"
+          ></textarea>
+          <button class="send-btn" id="sendBtn" aria-label="Send message" title="Send">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7.5 1.5L7.5 13.5M7.5 1.5L2 6.5M7.5 1.5L13 6.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <p class="input-hint">
+          Powered by AI · <a href="https://portfolio-fn9z.onrender.com" target="_blank" rel="noopener noreferrer">View full portfolio</a>
+        </p>
+      </footer>
+
+    </div>
+  </div>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
