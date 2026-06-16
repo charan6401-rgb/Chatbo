@@ -3,65 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sri charan's - AI Assistant🗿</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Sri Charan's AI Assistant 🗿</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+
     <div class="container">
         <div class="chat-box">
+
+            <!-- Header -->
             <div class="chat-header">
                 <div class="header-content">
-                    <h1> Sri charan's AI Assistant</h1>
-                    <p>a portfolio ai assistant</p>
+                    <h1>💬 Sri Charan's AI Assistant</h1>
+                    <p>Powered by OpenRouter AI</p>
                 </div>
             </div>
 
+            <!-- Suggested Prompts -->
             <div class="suggested-prompts">
-                <button class="prompt-btn" onclick="sendPrompt('Tell me about sri charan skills and projects')">
-                    💻 charan's Skills
+
+                <button class="prompt-btn"
+                        onclick="sendPrompt('Tell me about Sri Charan skills and projects')">
+                    💻 Charan's Skills
                 </button>
-                <button class="prompt-btn" onclick="sendPrompt('Suggest a Python or Flask project idea')">
+
+                <button class="prompt-btn"
+                        onclick="sendPrompt('Suggest a Python or Flask project idea')">
                     🚀 Project Ideas
                 </button>
-                <button class="prompt-btn" onclick="sendPrompt('What should I learn next?')">
+
+                <button class="prompt-btn"
+                        onclick="sendPrompt('What should I learn next?')">
                     📚 Learning Path
                 </button>
-                <button class="prompt-btn" onclick="sendPrompt('Create a workout routine')">
+
+                <button class="prompt-btn"
+                        onclick="sendPrompt('Create a workout routine')">
                     💪 Workout
                 </button>
-                <button class="prompt-btn" onclick="sendPrompt('Recommend a sci-fi or anime series')">
+
+                <button class="prompt-btn"
+                        onclick="sendPrompt('Recommend a sci-fi or anime series')">
                     🎬 Entertainment
                 </button>
+
             </div>
 
+            <!-- Chat Messages -->
             <div class="messages-container" id="messagesContainer">
+
                 <div class="message bot-message">
                     <div class="message-content">
-                        <p>Hey there! 👋 I'm sri charan's AI assistant. I know all abt sri charan's skills,intrests and goals. Ask me anything!</p>
+                        <p>
+                            Hey there! 👋 I'm Sri Charan's AI assistant.
+                            I know about Sri Charan's skills, interests,
+                            projects, and goals. Ask me anything!
+                        </p>
                     </div>
                 </div>
+
             </div>
 
+            <!-- Typing Indicator -->
             <div class="typing-indicator" id="typingIndicator">
                 <span></span>
                 <span></span>
                 <span></span>
             </div>
 
+            <!-- Input Area -->
             <div class="input-area">
-                <input 
-                    type="text" 
-                    id="messageInput" 
-                    placeholder="Type your message here..." 
+
+                <input
+                    type="text"
+                    id="messageInput"
+                    placeholder="Type your message here..."
                     autocomplete="off"
                 >
+
                 <button id="sendBtn" onclick="sendMessage()">
                     <span>Send</span>
                 </button>
+
             </div>
+
         </div>
     </div>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+
 </body>
 </html>
