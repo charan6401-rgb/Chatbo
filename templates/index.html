@@ -1,177 +1,67 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sri Charan's AI</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Orbitron:wght@600;700&display=swap" rel="stylesheet" />
-  <!-- Highlight.js for code syntax highlighting -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" id="hljs-theme" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <!-- Marked.js for markdown rendering -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
-  <link rel="stylesheet" href="/static/css/style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sri chaRAN - AI Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-
-  <!-- Ambient background orbs -->
-  <div class="bg-orbs" aria-hidden="true">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-  </div>
-
-  <!-- Grid overlay -->
-  <div class="grid-overlay" aria-hidden="true"></div>
-
-  <!-- ── Main Layout ── -->
-  <div class="app-shell">
-
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <div class="logo-mark">
-          <span class="logo-j">J</span>
-          <div class="logo-pulse"></div>
-        </div>
-        <div class="logo-text">
-          <span class="logo-name">JARVIS</span>
-          <span class="logo-sub">Sri Charan's AI</span>
-        </div>
-        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
-      </div>
-
-      <div class="sidebar-body">
-        <button class="new-chat-btn" id="newChatBtn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          <span>New Chat</span>
-        </button>
-
-        <div class="history-label">Recent</div>
-        <div class="chat-history" id="chatHistory">
-          <!-- History items injected by JS -->
-        </div>
-      </div>
-
-      <div class="sidebar-footer">
-        <!-- Theme switcher -->
-        <div class="theme-section">
-          <span class="theme-label">Theme</span>
-          <div class="theme-pills">
-            <button class="theme-pill active" data-theme="dark" title="Dark">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-            </button>
-            <button class="theme-pill" data-theme="light" title="Light">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-            </button>
-            <button class="theme-pill" data-theme="aurora" title="Aurora">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            </button>
-            <button class="theme-pill" data-theme="neon" title="Neon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-            </button>
-          </div>
-        </div>
-
-        <div class="sidebar-info">
-          <div class="status-dot"></div>
-          <span>All systems online</span>
-        </div>
-      </div>
-    </aside>
-
-    <!-- Main chat panel -->
-    <main class="chat-panel">
-
-      <!-- Top bar -->
-      <header class="chat-header">
-        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
-        <div class="header-title">
-          <span class="header-name">Jarvis</span>
-          <span class="header-status" id="headerStatus">
-            <span class="status-indicator online"></span>
-            Online
-          </span>
-        </div>
-        <div class="header-actions">
-          <button class="icon-btn" id="clearBtn" title="Clear chat">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          </button>
-        </div>
-      </header>
-
-      <!-- Messages container -->
-      <div class="messages-container" id="messagesContainer">
-
-        <!-- Welcome screen -->
-        <div class="welcome-screen" id="welcomeScreen">
-          <div class="welcome-orb">
-            <div class="welcome-ring ring-1"></div>
-            <div class="welcome-ring ring-2"></div>
-            <div class="welcome-ring ring-3"></div>
-            <div class="welcome-core">J</div>
-          </div>
-          <h1 class="welcome-title">Hello, I'm Jarvis</h1>
-          <p class="welcome-sub">Sri Charan's personal AI assistant. Ask me about his projects, skills, or anything else.</p>
-          <div class="suggestion-grid">
-            <button class="suggestion-chip" data-prompt="Tell me about Sri Charan's projects">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-              Projects
-            </button>
-            <button class="suggestion-chip" data-prompt="What skills does Sri Charan have?">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-              Skills
-            </button>
-            <button class="suggestion-chip" data-prompt="How can I contact Sri Charan?">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              Contact
-            </button>
-            <button class="suggestion-chip" data-prompt="What is Sri Charan currently building?">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              Current Work
-            </button>
-          </div>
-        </div>
-
-        <!-- Messages injected here by JS -->
-        <div class="messages-list" id="messagesList"></div>
-
-      </div>
-
-      <!-- Input area -->
-      <div class="input-area">
-        <div class="input-glass">
-          <textarea
-            id="messageInput"
-            placeholder="Ask Jarvis anything…"
-            rows="1"
-            aria-label="Message input"
-          ></textarea>
-          <button class="send-btn" id="sendBtn" aria-label="Send message" disabled>
-            <svg class="send-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            <div class="send-spinner" style="display:none">
-              <div class="spinner-ring"></div>
+    <div class="container">
+        <div class="chat-box">
+            <div class="chat-header">
+                <div class="header-content">
+                    <h1>💬 Sri chaRAN's AI Assistant</h1>
+                    <p>Powered by DeepSeek v3.1</p>
+                </div>
             </div>
-          </button>
+
+            <div class="suggested-prompts">
+                <button class="prompt-btn" onclick="sendPrompt('Tell me about my skills and projects')">
+                    💻 My Skills
+                </button>
+                <button class="prompt-btn" onclick="sendPrompt('Suggest a Python or Flask project idea')">
+                    🚀 Project Ideas
+                </button>
+                <button class="prompt-btn" onclick="sendPrompt('What should I learn next?')">
+                    📚 Learning Path
+                </button>
+                <button class="prompt-btn" onclick="sendPrompt('Create a calisthenics workout routine')">
+                    💪 Workout
+                </button>
+                <button class="prompt-btn" onclick="sendPrompt('Recommend a sci-fi or anime series')">
+                    🎬 Entertainment
+                </button>
+            </div>
+
+            <div class="messages-container" id="messagesContainer">
+                <div class="message bot-message">
+                    <div class="message-content">
+                        <p>Hey there! 👋 I'm your personal AI assistant. I know all about your skills, interests, and goals. Ask me anything!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <div class="input-area">
+                <input 
+                    type="text" 
+                    id="messageInput" 
+                    placeholder="Type your message here..." 
+                    autocomplete="off"
+                >
+                <button id="sendBtn" onclick="sendMessage()">
+                    <span>Send</span>
+                </button>
+            </div>
         </div>
-        <p class="input-disclaimer">Jarvis can make mistakes. Verify important information.</p>
-      </div>
+    </div>
 
-    </main>
-  </div>
-
-  <!-- Mobile sidebar overlay -->
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-  <!-- Copy toast -->
-  <div class="toast" id="copyToast">Copied to clipboard!</div>
-
-  <script src="/static/js/app.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
